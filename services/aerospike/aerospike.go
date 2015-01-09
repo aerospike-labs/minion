@@ -115,9 +115,10 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 			}
 			dst.Close()
 
-			if err = os.Chmod(dst, 0755); err != nil {
+			if err = os.Chmod(dstPath, 0755); err != nil {
 				return err
 			}
+
 		case tar.TypeDir:
 			os.MkdirAll(dstPath, 0755)
 		}
