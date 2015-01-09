@@ -5,6 +5,7 @@ import (
 
 	"bytes"
 	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -56,7 +57,14 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 	if err != nil {
 		return err
 	} else {
-		sha, err = ioutil.ReadAll(shaResp.Body)
+		shaRaw, err = ioutil.ReadAll(shaResp.Body)
+		if err != nil {
+			return err
+		}
+		sha, err := hex.DecodeString(shaRaw[:64])
+		if err != nil {
+			return err
+		}
 	}
 
 	// compute checksum of tgz
@@ -66,7 +74,7 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 	fmt.Printf("sum: %X\n", sum)
 
 	// are checksums equal?
-	if !bytes.Equal(sha, sum[:]) {
+	if !bytes.Equal(sha[:], sum[:]) {
 		return ErrorInvalidChecksum
 	}
 
