@@ -60,8 +60,7 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 	}
 
 	// compute checksum of tgz
-	hash := sha256.New()
-	sum := hash.Sum(tgz)
+	sum := sha256.Sum(tgz)
 
 	fmt.Printf("sha: %X\n", sha)
 	fmt.Printf("sum: %X\n", sum)
