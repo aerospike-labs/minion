@@ -49,7 +49,7 @@ func (self *ServiceContext) Install(req *http.Request, args *ServiceInstall, res
 		return service.Exists
 	}
 
-	get := exec.Command("go", "get", args.URL)
+	get := exec.Command("go", "get", "-u", args.URL)
 	getOut, err := get.CombinedOutput()
 	println("out: ", string(getOut))
 	if err != nil {

@@ -97,7 +97,7 @@ func main() {
 
 	// set log to error log
 	if quiet {
-		log.SetOutput(error)
+		log.SetOutput(errorLog)
 	} else {
 		log.SetOutput(io.MultiWriter(os.Stdout, errorLog))
 	}
@@ -124,8 +124,8 @@ func main() {
 
 	// routes
 	httpRouter := http.NewServeMux()
-	httpRouter.Handle("/rpc", handlers.CombinedLoggingHandler(access, rpcServer))
-	httpRouter.Handle("/events", handlers.CombinedLoggingHandler(access, eventSource))
+	httpRouter.Handle("/rpc", handlers.CombinedLoggingHandler(accessLog, rpcServer))
+	httpRouter.Handle("/events", handlers.CombinedLoggingHandler(accessLog, eventSource))
 
 	// server
 	httpServer := &http.Server{
