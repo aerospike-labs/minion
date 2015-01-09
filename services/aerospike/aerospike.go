@@ -151,20 +151,20 @@ func (svc *AerospikeService) Remove() error {
 
 func (svc *AerospikeService) Status() (Status, error) {
 	var res string = ""
-	svc.run("status", &res)
-	return Running, nil
+	err := svc.run("status", &res)
+	return Running, err
 }
 
 func (svc *AerospikeService) Start() error {
 	var res string = ""
-	svc.run("start", &res)
-	return nil
+	err := svc.run("start", &res)
+	return err
 }
 
 func (svc *AerospikeService) Stop() error {
 	var res string = ""
-	svc.run("stop", &res)
-	return nil
+	err := svc.run("stop", &res)
+	return err
 }
 
 func (svc *AerospikeService) Stats() (map[string]interface{}, error) {
