@@ -3,16 +3,19 @@ package main
 import (
 	. "github.com/aerospike-labs/minion/service"
 
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
-	// "os/exec"
 	// "strings"
 )
 
@@ -79,24 +82,60 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 
 	svcPath := os.Getenv("SERVICE_PATH")
 
-	r, err := zip.NewReader(bytes.NewReader(tgz), tgzResp.ContentLength)
+	tgzReader := bytes.NewReader(tgz)
+
+	gzipReader, err := gzip.NewReader(tgzReader)
 	if err != nil {
 		return err
 	}
-	for _, zf := range r.File {
-		dstPath := filepath.Join(svcPath, zf.Name)
-		dst, err := os.Create(dstPath)
-		if err != nil {
-			return err
-		}
-		defer dst.Close()
-		src, err := zf.Open()
-		if err != nil {
-			return err
-		}
-		defer src.Close()
 
-		io.Copy(dst, src)
+	tarReader := tar.NewReader(gzipReader)
+	for {
+		hdr, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		dstPath := filepath.Join(svcPath, hdr.Name)
+
+		switch hdr.Typeflag {
+		case tar.TypeReg | tar.TypeRegA:
+			dstBase := filepath.Dir(dstPath)
+			os.MkdirAll(dstBase, 0755)
+
+			if err = os.Chmod(dstPath, 0755); err != nil {
+				return err
+			}
+
+			dst, err := os.Create(dstPath)
+			if err != nil {
+				return err
+			}
+			if _, err := io.Copy(dst, tarReader); err != nil {
+				return err
+			}
+		case tar.TypeDir:
+			os.MkdirAll(dstPath, 0755)
+		}
+
+	}
+
+	// run aerospike init
+	aerospikePath := filepath.Join(svcPath, "aerospike-server")
+	aerospikeCommand := filepath.Join("bin", "aerospike")
+
+	if err = os.Chmod(aerospikeCommand, 0755); err != nil {
+		return err
+	}
+
+	cmd := exec.Command(aerospikeCommand, "init")
+	cmd.Dir = aerospikePath
+	out, err := cmd.CombinedOutput()
+	println("out: ", string(out))
+	if err != nil {
+		return err
 	}
 
 	return nil

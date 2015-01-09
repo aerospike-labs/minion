@@ -1,4 +1,7 @@
 log/
 bin/
 src/
+svc/
+aerospike
 minion
+version
