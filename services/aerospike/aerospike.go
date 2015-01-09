@@ -16,7 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	// "strings"
+	"strings"
 )
 
 const (
@@ -152,7 +152,15 @@ func (svc *AerospikeService) Remove() error {
 func (svc *AerospikeService) Status() (Status, error) {
 	var res string = ""
 	err := svc.run("status", &res)
-	return Running, err
+	if err != nil {
+		return StatusUnknown, err
+	}
+
+	if strings.Contains(res, "running") {
+		return Running, nil
+	} else {
+		return Stopped, nil
+	}
 }
 
 func (svc *AerospikeService) Start() error {

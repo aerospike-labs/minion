@@ -19,7 +19,7 @@ type Status int
 const (
 	Running Status = iota
 	Stopped
-	Unknown
+	StatusUnknown
 )
 
 type Service interface {
