@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path/filepath"
 	// "os/exec"
 	// "strings"
 )
@@ -40,7 +42,6 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 
 	// download the tgz
 	tgzUrl := fmt.Sprintf(AEROSPIKE_TGZ_URL, version, version)
-	fmt.Printf("tgz: %s\n", tgzUrl)
 	tgzResp, err := http.Get(tgzUrl)
 	defer tgzResp.Body.Close()
 	if err != nil {
@@ -51,7 +52,6 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 
 	// download the sha
 	shaUrl := fmt.Sprintf(AEROSPIKE_SHA_URL, version, version)
-	fmt.Printf("sha: %s\n", shaUrl)
 	shaResp, err := http.Get(shaUrl)
 	defer shaResp.Body.Close()
 	if err != nil {
@@ -70,15 +70,34 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 	// compute checksum of tgz
 	sum := sha256.Sum256(tgz)
 
-	fmt.Printf("sha: %X\n", sha)
-	fmt.Printf("sum: %X\n", sum)
-
 	// are checksums equal?
 	if !bytes.Equal(sha[:], sum[:]) {
 		return ErrorInvalidChecksum
 	}
 
-	println("shit yeah")
+	// checksums good, let's extract files
+
+	svcPath := os.Getenv("SERVICE_PATH")
+
+	r, err := zip.NewReader(bytes.NewReader(tgz), tgzResp.ContentLength)
+	if err != nil {
+		return err
+	}
+	for _, zf := range r.File {
+		dstPath := filepath.Join(svcPath, zf.Name)
+		dst, err := os.Create(dstPath)
+		if err != nil {
+			return err
+		}
+		defer dst.Close()
+		src, err := zf.Open()
+		if err != nil {
+			return err
+		}
+		defer src.Close()
+
+		io.Copy(dst, src)
+	}
 
 	return nil
 }

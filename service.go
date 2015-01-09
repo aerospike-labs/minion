@@ -141,35 +141,6 @@ func (self *ServiceContext) Exists(req *http.Request, serviceName *string, res *
 	return nil
 }
 
-// Run a Service Command
-func (self *ServiceContext) run(serviceName string, commandName string, params map[string]interface{}, res *string) error {
-	var err error = nil
-
-	if _, ok := self.Registry[serviceName]; !ok {
-		return service.NotFound
-	}
-
-	binPath := filepath.Join(rootPath, "bin", serviceName)
-
-	cmd := exec.Command(binPath, commandName)
-
-	b, err := json.Marshal(params)
-	if err != nil {
-		return err
-	} else {
-		cmd.Stdin = bytes.NewReader(b)
-	}
-
-	out, err := cmd.CombinedOutput()
-	println("out: ", string(out))
-	if err != nil {
-		return err
-	}
-
-	*res = string(out)
-	return err
-}
-
 // Status of the Service
 func (self *ServiceContext) Status(req *http.Request, serviceName *string, res *string) error {
 	return self.run(*serviceName, "status", map[string]interface{}{}, res)
@@ -188,4 +159,38 @@ func (self *ServiceContext) Stop(req *http.Request, serviceName *string, res *st
 // Stats of the Service
 func (self *ServiceContext) Stats(req *http.Request, serviceName *string, res *string) error {
 	return self.run(*serviceName, "stats", map[string]interface{}{}, res)
+}
+
+// Run a Service Command
+func (self *ServiceContext) run(serviceName string, commandName string, params map[string]interface{}, res *string) error {
+	var err error = nil
+
+	serviceUrl, serviceExists := self.Registry[serviceName]
+	if !serviceExists {
+		return service.NotFound
+	}
+
+	binPath := filepath.Join(rootPath, "bin", serviceName)
+
+	cmd := exec.Command(binPath, commandName)
+	cmd.Env = append(cmd.Env, "GOPATH="+rootPath)
+	cmd.Env = append(cmd.Env, "SERVICE_NAME="+serviceName)
+	cmd.Env = append(cmd.Env, "SERVICE_URL="+serviceUrl)
+	cmd.Env = append(cmd.Env, "SERVICE_PATH="+filepath.Join(rootPath, "svc", serviceName))
+
+	b, err := json.Marshal(params)
+	if err != nil {
+		return err
+	} else {
+		cmd.Stdin = bytes.NewReader(b)
+	}
+
+	out, err := cmd.CombinedOutput()
+	println("out: ", string(out))
+	if err != nil {
+		return err
+	}
+
+	*res = string(out)
+	return err
 }
