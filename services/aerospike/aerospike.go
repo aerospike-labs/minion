@@ -132,7 +132,7 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 	cmd := exec.Command(aerospikeCommand, "init")
 	cmd.Dir = svcPath
 	out, err := cmd.CombinedOutput()
-	println("out: ", string(out))
+	println("out: ", string(out), "|||")
 	if err != nil {
 		return err
 	}
