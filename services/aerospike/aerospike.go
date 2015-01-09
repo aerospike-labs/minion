@@ -61,7 +61,7 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 		if err != nil {
 			return err
 		}
-		sha, err = hex.DecodeString(shaRaw[:64])
+		sha, err = hex.DecodeString(string(shaRaw[:64]))
 		if err != nil {
 			return err
 		}
