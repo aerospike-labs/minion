@@ -122,7 +122,7 @@ func (self *ServiceContext) Remove(req *http.Request, serviceName *string, res *
 		}
 	}
 
-	svcPath := filepath.Join(rootPath, "svc", serviceName)
+	svcPath := filepath.Join(rootPath, "svc", *serviceName)
 	if err = os.RemoveAll(svcPath); err != nil {
 		if !os.IsNotExist(err) {
 			return err
