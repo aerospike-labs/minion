@@ -131,8 +131,7 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 
 	cmd := exec.Command(aerospikeCommand, "init")
 	cmd.Dir = svcPath
-	out, err := cmd.CombinedOutput()
-	println("out: ", string(out), "|||")
+	_, err = cmd.CombinedOutput()
 	if err != nil {
 		return err
 	}
@@ -142,7 +141,19 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 
 func (svc *AerospikeService) Remove() error {
 
+	var err error
 	svcPath := os.Getenv("SERVICE_PATH")
+
+	// run aerospike destroy
+	aerospikePath := filepath.Join(svcPath, "aerospike-server")
+	aerospikeCommand := filepath.Join(aerospikePath, "bin", "aerospike")
+
+	cmd := exec.Command(aerospikeCommand, "destroy")
+	cmd.Dir = svcPath
+	_, err = cmd.CombinedOutput()
+	if err != nil {
+		return err
+	}
 
 	os.RemoveAll(svcPath)
 
@@ -150,13 +161,12 @@ func (svc *AerospikeService) Remove() error {
 }
 
 func (svc *AerospikeService) Status() (Status, error) {
-	var res string = ""
-	err := svc.run("status", &res)
+	out, err := svc.run("status")
 	if err != nil {
 		return StatusUnknown, err
 	}
 
-	if strings.Contains(res, "running") {
+	if strings.Contains(out, "running") {
 		return Running, nil
 	} else {
 		return Stopped, nil
@@ -164,14 +174,12 @@ func (svc *AerospikeService) Status() (Status, error) {
 }
 
 func (svc *AerospikeService) Start() error {
-	var res string = ""
-	err := svc.run("start", &res)
+	_, err := svc.run("start")
 	return err
 }
 
 func (svc *AerospikeService) Stop() error {
-	var res string = ""
-	err := svc.run("stop", &res)
+	_, err := svc.run("stop")
 	return err
 }
 
@@ -180,7 +188,7 @@ func (svc *AerospikeService) Stats() (map[string]interface{}, error) {
 }
 
 // Run a Service Command
-func (svc *AerospikeService) run(commandName string, res *string) error {
+func (svc *AerospikeService) run(commandName string) (string, error) {
 	var err error = nil
 
 	binPath := filepath.Join(svcPath, "bin", "aerospike")
@@ -188,13 +196,11 @@ func (svc *AerospikeService) run(commandName string, res *string) error {
 	cmd := exec.Command(binPath, commandName)
 	cmd.Dir = svcPath
 	out, err := cmd.CombinedOutput()
-	println("out: ", string(out), "||||")
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	*res = string(out)
-	return err
+	return string(out), err
 }
 
 // Bundle Main - should call BundleRun, to run the bundle,
