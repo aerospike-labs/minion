@@ -180,7 +180,7 @@ func (svc *AerospikeService) run(commandName string, res *string) error {
 	cmd := exec.Command(binPath, commandName)
 	cmd.Dir = svcPath
 	out, err := cmd.CombinedOutput()
-	println("out: ", string(out))
+	println("out: ", string(out), "||||")
 	if err != nil {
 		return err
 	}
