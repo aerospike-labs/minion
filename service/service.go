@@ -74,7 +74,7 @@ func Run(s Service) {
 				println("status: running")
 			case Stopped:
 				println("status: stopped")
-			case Unknown:
+			case StatusUnknown:
 				println("status: unknown")
 			}
 		} else {
