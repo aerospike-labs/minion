@@ -27,17 +27,17 @@ const (
 var (
 	ErrorInvalidChecksum error = errors.New("Invalid Checksum")
 	ErrorMissingVersion  error = errors.New("Missing 'version' Parameter")
+
+	svcPath string = os.Getenv("SERVICE_PATH")
 )
 
 type AerospikeService struct{}
 
-func (b *AerospikeService) Install(params map[string]interface{}) error {
+func (svc *AerospikeService) Install(params map[string]interface{}) error {
 
 	var err error
 	var tgz []byte
 	var sha []byte
-
-	svcPath := os.Getenv("SERVICE_PATH")
 
 	// the following should come from `params`
 	version, ok := params["version"]
@@ -140,7 +140,7 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 	return nil
 }
 
-func (b *AerospikeService) Remove() error {
+func (svc *AerospikeService) Remove() error {
 
 	svcPath := os.Getenv("SERVICE_PATH")
 
@@ -149,20 +149,44 @@ func (b *AerospikeService) Remove() error {
 	return nil
 }
 
-func (b *AerospikeService) Status() (Status, error) {
+func (svc *AerospikeService) Status() (Status, error) {
+	var res string = ""
+	svc.run("status", &res)
 	return Running, nil
 }
 
-func (b *AerospikeService) Start() error {
+func (svc *AerospikeService) Start() error {
+	var res string = ""
+	svc.run("start", &res)
 	return nil
 }
 
-func (b *AerospikeService) Stop() error {
+func (svc *AerospikeService) Stop() error {
+	var res string = ""
+	svc.run("stop", &res)
 	return nil
 }
 
-func (b *AerospikeService) Stats() (map[string]interface{}, error) {
+func (svc *AerospikeService) Stats() (map[string]interface{}, error) {
 	return map[string]interface{}{}, nil
+}
+
+// Run a Service Command
+func (svc *AerospikeService) run(commandName string, res *string) error {
+	var err error = nil
+
+	binPath := filepath.Join(svcPath, "bin", "aerospike")
+
+	cmd := exec.Command(binPath, commandName)
+	cmd.Dir = svcPath
+	out, err := cmd.CombinedOutput()
+	println("out: ", string(out))
+	if err != nil {
+		return err
+	}
+
+	*res = string(out)
+	return err
 }
 
 // Bundle Main - should call BundleRun, to run the bundle,
