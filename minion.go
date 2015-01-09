@@ -82,24 +82,24 @@ func main() {
 	}
 
 	// open access log
-	access, err := os.OpenFile(accessPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	accessLog, err := os.OpenFile(accessPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Panic("error opening access log: %v", err)
 	}
-	defer access.Close()
+	defer accessLog.Close()
 
 	// open error log
-	error, err := os.OpenFile(errorPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	errorLog, err := os.OpenFile(errorPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Panic("error opening error log: %v", err)
 	}
-	defer error.Close()
+	defer errorLog.Close()
 
 	// set log to error log
 	if quiet {
 		log.SetOutput(error)
 	} else {
-		log.SetOutput(io.MultiWriter(os.Stdout, error))
+		log.SetOutput(io.MultiWriter(os.Stdout, errorLog))
 	}
 
 	// daemon signal handlers

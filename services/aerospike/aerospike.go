@@ -39,6 +39,7 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 
 	// download the tgz
 	tgzUrl := fmt.Sprintf(AEROSPIKE_TGZ_URL, version, version)
+	fmt.Printf("tgz: %s\n", tgzUrl)
 	tgzResp, err := http.Get(tgzUrl)
 	defer tgzResp.Body.Close()
 	if err != nil {
@@ -49,6 +50,7 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 
 	// download the sha
 	shaUrl := fmt.Sprintf(AEROSPIKE_SHA_URL, version, version)
+	fmt.Printf("sha: %s\n", shaUrl)
 	shaResp, err := http.Get(shaUrl)
 	defer shaResp.Body.Close()
 	if err != nil {
@@ -59,10 +61,13 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 
 	// compute checksum of tgz
 	hash := sha256.New()
-	checksum := hash.Sum(tgz)
+	sum := hash.Sum(tgz)
+
+	fmt.Printf("sha: %X\n", sha)
+	fmt.Printf("sum: %X\n", sum)
 
 	// are checksums equal?
-	if !bytes.Equal(sha, checksum) {
+	if !bytes.Equal(sha, sum) {
 		return ErrorInvalidChecksum
 	}
 

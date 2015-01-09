@@ -49,10 +49,18 @@ func (self *ServiceContext) Install(req *http.Request, args *ServiceInstall, res
 		return service.Exists
 	}
 
+	get := exec.Command("go", "get", args.URL)
+	getOut, err := get.CombinedOutput()
+	println("out: ", string(getOut))
+	if err != nil {
+		println("error: ", err.Error())
+		return err
+	}
+
 	binPath := filepath.Join(rootPath, "bin", args.Name)
-	cmd := exec.Command("go", "build", "-o", binPath, args.URL)
-	out, err := cmd.CombinedOutput()
-	println("out: ", string(out))
+	build := exec.Command("go", "build", "-o", binPath, args.URL)
+	buildOut, err := build.CombinedOutput()
+	println("out: ", string(buildOut))
 	if err != nil {
 		println("error: ", err.Error())
 		return err
@@ -65,7 +73,7 @@ func (self *ServiceContext) Install(req *http.Request, args *ServiceInstall, res
 		return err
 	}
 
-	*res = string(out)
+	// *res = string(out)
 	return err
 }
 
@@ -74,8 +82,8 @@ func (self *ServiceContext) Remove(req *http.Request, serviceName *string, res *
 
 	var err error = nil
 
-	serviceURL, ok := self.Registry[*serviceName]
-	if !ok {
+	serviceURL, exists := self.Registry[*serviceName]
+	if !exists {
 		return service.NotFound
 	}
 
@@ -141,7 +149,7 @@ func (self *ServiceContext) run(serviceName string, commandName string, params m
 		return service.NotFound
 	}
 
-	binPath := filepath.Join("minion", "services", serviceName)
+	binPath := filepath.Join(rootPath, "bin", serviceName)
 
 	cmd := exec.Command(binPath, commandName)
 
@@ -153,6 +161,7 @@ func (self *ServiceContext) run(serviceName string, commandName string, params m
 	}
 
 	out, err := cmd.CombinedOutput()
+	println("out: ", string(out))
 	if err != nil {
 		return err
 	}
