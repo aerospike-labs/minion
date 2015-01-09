@@ -68,6 +68,10 @@ func (self *ServiceContext) Install(req *http.Request, args *ServiceInstall, res
 
 	self.Registry[args.Name] = args.URL
 
+	// create service directory
+	svcPath := filepath.Join(rootPath, "svc", args.Name)
+	os.MkdirAll(svcPath, 0755)
+
 	// run "install" command
 	if err = self.run(args.Name, "install", args.Params, res); err != nil {
 		return err
@@ -113,6 +117,13 @@ func (self *ServiceContext) Remove(req *http.Request, serviceName *string, res *
 
 	binPath := filepath.Join(rootPath, "bin", *serviceName)
 	if err = os.RemoveAll(binPath); err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	}
+
+	svcPath := filepath.Join(rootPath, "svc", serviceName)
+	if err = os.RemoveAll(svcPath); err != nil {
 		if !os.IsNotExist(err) {
 			return err
 		}

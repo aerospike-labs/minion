@@ -37,6 +37,8 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 	var tgz []byte
 	var sha []byte
 
+	svcPath := os.Getenv("SERVICE_PATH")
+
 	// the following should come from `params`
 	version, ok := params["version"]
 	if !ok {
@@ -80,8 +82,6 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 
 	// checksums good, let's extract files
 
-	svcPath := os.Getenv("SERVICE_PATH")
-
 	tgzReader := bytes.NewReader(tgz)
 
 	gzipReader, err := gzip.NewReader(tgzReader)
@@ -102,18 +102,20 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 
 		switch hdr.Typeflag {
 		case tar.TypeReg | tar.TypeRegA:
-			dstBase := filepath.Dir(dstPath)
-			os.MkdirAll(dstBase, 0755)
-
-			if err = os.Chmod(dstPath, 0755); err != nil {
-				return err
-			}
+			dstDir := filepath.Dir(dstPath)
+			os.MkdirAll(dstDir, 0755)
 
 			dst, err := os.Create(dstPath)
 			if err != nil {
 				return err
 			}
+
 			if _, err := io.Copy(dst, tarReader); err != nil {
+				return err
+			}
+			dst.Close()
+
+			if err = os.Chmod(dst, 0755); err != nil {
 				return err
 			}
 		case tar.TypeDir:
@@ -124,14 +126,10 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 
 	// run aerospike init
 	aerospikePath := filepath.Join(svcPath, "aerospike-server")
-	aerospikeCommand := filepath.Join("bin", "aerospike")
-
-	if err = os.Chmod(aerospikeCommand, 0755); err != nil {
-		return err
-	}
+	aerospikeCommand := filepath.Join(aerospikePath, "bin", "aerospike")
 
 	cmd := exec.Command(aerospikeCommand, "init")
-	cmd.Dir = aerospikePath
+	cmd.Dir = svcPath
 	out, err := cmd.CombinedOutput()
 	println("out: ", string(out))
 	if err != nil {
@@ -142,6 +140,11 @@ func (b *AerospikeService) Install(params map[string]interface{}) error {
 }
 
 func (b *AerospikeService) Remove() error {
+
+	svcPath := os.Getenv("SERVICE_PATH")
+
+	os.RemoveAll(svcPath)
+
 	return nil
 }
 
