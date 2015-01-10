@@ -4,5 +4,5 @@ src/
 svc/
 aerospike
 minion
-version
 ./minion
+./aerospike
