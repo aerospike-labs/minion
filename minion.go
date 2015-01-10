@@ -138,12 +138,22 @@ func main() {
 
 	// stats polling thread
 	go func() {
+		params := map[string]interface{}{}
 		for {
 			select {
 			// case m := <-c:
 			// 	handle(m)
 			case <-time.After(time.Second):
-				println("timed out")
+				for name, _ := range serviceContext.Registry {
+					var res string
+					err := serviceContext.run(name, "stats", params, &res)
+					if err != nil {
+						println(err.Error())
+					} else {
+						println(res)
+						serviceContext.SendEventMessage(res, "stats:"+name, "")
+					}
+				}
 			}
 		}
 	}()
