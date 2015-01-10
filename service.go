@@ -168,8 +168,16 @@ func (self *ServiceContext) Stop(req *http.Request, serviceName *string, res *st
 }
 
 // Stats of the Service
-func (self *ServiceContext) Stats(req *http.Request, serviceName *string, res *string) error {
-	return self.run(*serviceName, "stats", map[string]interface{}{}, res)
+func (self *ServiceContext) Stats(req *http.Request, serviceName *string, res *map[string]int) error {
+	var out string = ""
+
+	err := self.run(*serviceName, "stats", map[string]interface{}{}, &out)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal([]byte(out), res)
+	return err
 }
 
 // Run a Service Command
