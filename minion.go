@@ -136,6 +136,18 @@ func main() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
+	// stats polling thread
+	go func() {
+		for {
+			select {
+			// case m := <-c:
+			// 	handle(m)
+			case <-time.After(time.Second):
+				println("timed out")
+			}
+		}
+	}()
+
 	// start
 	log.Printf("Starting HTTP on http://%s\n", listen)
 	log.Panic(httpServer.ListenAndServe())
