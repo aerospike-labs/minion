@@ -205,7 +205,6 @@ func (self *ServiceContext) run(serviceName string, commandName string, params m
 	}
 
 	out, err := cmd.CombinedOutput()
-	println("out: ", string(out))
 	if err != nil {
 		return err
 	}

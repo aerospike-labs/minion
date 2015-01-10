@@ -150,7 +150,6 @@ func main() {
 					if err != nil {
 						println(err.Error())
 					} else {
-						println(res)
 						serviceContext.SendEventMessage(res, "stats:"+name, "")
 					}
 				}
