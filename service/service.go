@@ -93,6 +93,7 @@ func Run(s Service) {
 				serviceError(err)
 			} else {
 				os.Stdout.Write(b)
+				os.Stdout.WriteString("\n")
 			}
 		} else {
 			serviceError(err)

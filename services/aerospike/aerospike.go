@@ -4,6 +4,7 @@ import (
 	. "github.com/aerospike-labs/minion/service"
 
 	"archive/tar"
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
@@ -12,11 +13,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 const (
@@ -29,6 +33,52 @@ var (
 	ErrorMissingVersion  error = errors.New("Missing 'version' Parameter")
 
 	svcPath string = os.Getenv("SERVICE_PATH")
+
+	statsMapper = map[string]func(m map[string]int) int{
+
+		"read":              get("stats_read_req"),
+		"read_ok":           get("stat_read_success"),
+		"read_err":          sum(get("stat_read_errs_notfound"), get("stat_read_errs_other")),
+		"read_err_notfound": get("stat_read_errs_notfound"),
+		"read_err_other":    get("stat_read_errs_other"),
+
+		"write":              get("stat_write_reqs"),
+		"write_ok":           get("stat_write_success"),
+		"write_err":          sum(get("stat_write_errs_notfound"), get("stat_write_errs_other")),
+		"write_err_notfound": get("stat_write_errs_notfound"),
+		"write_err_other":    get("stat_write_errs_other"),
+
+		"objects_evicted": get("stat_evicted_objects"),
+		"objects_expired": get("stat_expired_objects"),
+
+		"proxy":     get("stat_proxy_reqs"),
+		"proxy_ok":  get("stat_proxy_success"),
+		"proxy_err": get("stat_proxy_errs"),
+
+		"query":       get("query_reqs"),
+		"query_ok":    get("query_success"),
+		"query_err":   get("query_fail"),
+		"query_abort": get("query_abort"),
+
+		"query_agg":       get("query_agg"),
+		"query_agg_ok":    get("query_agg_success"),
+		"query_agg_err":   get("query_agg_err"),
+		"query_agg_abort": get("query_agg_abort"),
+
+		"udf_lua_err": get("udf_lua_errs"),
+
+		"udf_delete":     get("udf_delete_reqs"),
+		"udf_delete_ok":  get("udf_delete_success"),
+		"udf_delete_err": get("udf_delete_err_others"),
+
+		"udf_read":     get("udf_read_reqs"),
+		"udf_read_ok":  get("udf_read_success"),
+		"udf_read_err": get("udf_read_errs_other"),
+
+		"udf_write":     get("udf_write_reqs"),
+		"udf_write_ok":  get("udf_write_success"),
+		"udf_write_err": get("udf_write_err_others"),
+	}
 )
 
 type AerospikeService struct{}
@@ -183,8 +233,78 @@ func (svc *AerospikeService) Stop() error {
 	return err
 }
 
+func ScanPairs(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	start := 0
+	// Scan until ';', marking end of word.
+	for width, i := 0, start; i < len(data); i += width {
+		var r rune
+		r, width = utf8.DecodeRune(data[i:])
+		if r == ';' {
+			return i + width, data[start:i], nil
+		}
+	}
+	// If we're at EOF, we have a final, non-empty, non-terminated word. Return it.
+	if atEOF && len(data) > start {
+		return len(data), data[start:], nil
+	}
+	// Request more data.
+	return start, nil, nil
+}
+
+func get(k string) func(map[string]int) int {
+	return func(m map[string]int) int {
+		return m[k]
+	}
+}
+
+func sum(vals ...func(m map[string]int) int) func(map[string]int) int {
+
+	return func(m map[string]int) int {
+		i := 0
+		for _, val := range vals {
+			i += val(m)
+		}
+		return i
+	}
+}
+
 func (svc *AerospikeService) Stats() (map[string]interface{}, error) {
-	return map[string]interface{}{}, nil
+
+	var err error
+	stats := map[string]interface{}{}
+
+	conn, err := net.Dial("tcp", "s5:3003")
+	if err != nil {
+		return stats, err
+	}
+
+	fmt.Fprintf(conn, "statistics\n")
+
+	statistics, err := bufio.NewReader(conn).ReadString('\n')
+
+	rawStats := map[string]int{}
+
+	scanner := bufio.NewScanner(strings.NewReader(statistics))
+	scanner.Split(ScanPairs)
+	for scanner.Scan() {
+		pair := scanner.Text()
+		parts := strings.SplitN(pair, "=", 2)
+		rawStats[parts[0]], err = strconv.Atoi(parts[1])
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Printf("error: Invalid input: %s", err)
+	}
+
+	for k, fn := range statsMapper {
+		if fn == nil {
+			stats[k] = rawStats[k]
+		} else {
+			stats[k] = fn(rawStats)
+		}
+	}
+
+	return stats, nil
 }
 
 // Run a Service Command
