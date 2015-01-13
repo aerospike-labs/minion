@@ -5,6 +5,7 @@ import (
 
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
@@ -205,8 +206,10 @@ func (self *ServiceContext) run(serviceName string, commandName string, params m
 	env = append(env, "SERVICE_URL="+serviceUrl)
 	env = append(env, "SERVICE_PATH="+svcPath)
 
+	fmt.Printf("ENV: %v", env)
+
 	cmd := exec.Command(binPath, commandName)
-	cmd.Env = append(cmd.Env, env...)
+	cmd.Env = env
 
 	b, err := json.Marshal(params)
 	if err != nil {
