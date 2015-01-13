@@ -5,7 +5,7 @@ import (
 
 	"bytes"
 	"encoding/json"
-	"log"
+	// "log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -35,6 +35,22 @@ type ServiceInstall struct {
 //
 // ----------------------------------------------------------------------------
 
+func (self *ServiceContext) getenv(serviceName string, serviceUrl string) []string {
+
+	svcPath := filepath.Join(rootPath, "svc", serviceName)
+	goRoot := filepath.Join(rootPath, "go")
+	goBin := filepath.Join(goRoot, "bin")
+
+	env := []string{}
+	env = append(env, "GOPATH="+svcPath)
+	env = append(env, "GOROOT="+goRoot)
+	env = append(env, "PATH="+os.Getenv("PATH")+":"+goBin)
+	env = append(env, "SERVICE_NAME="+serviceName)
+	env = append(env, "SERVICE_URL="+serviceUrl)
+	env = append(env, "SERVICE_PATH="+svcPath)
+	return env
+}
+
 // List Bundles
 func (self *ServiceContext) List(req *http.Request, args *struct{}, res *map[string]string) error {
 	*res = self.Registry
@@ -46,7 +62,8 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 
 	var err error = nil
 
-	if _, ok := self.Registry[svc.Id]; ok {
+	serviceUrl, exists := self.Registry[svc.Id]
+	if exists {
 		return service.Exists
 	}
 
@@ -54,15 +71,9 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	svcPath := filepath.Join(rootPath, "svc", svc.Id)
 	os.MkdirAll(svcPath, 0755)
 
-	// environment variables
-	env := []string{}
-	env = append(env, "GOPATH="+svcPath)
-	env = append(env, "GOROOT="+os.Getenv("GOROOT"))
-	env = append(env, "PATH="+os.Getenv("PATH"))
-
 	// download the service
 	get := exec.Command("go", "get", "-u", svc.URL)
-	get.Env = append(get.Env, env...)
+	get.Env = self.getenv(svc.Id, serviceUrl)
 	get.Dir = svcPath
 	getOut, err := get.CombinedOutput()
 	println("out: ", string(getOut))
@@ -73,7 +84,7 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 
 	binPath := filepath.Join("bin", svc.Id)
 	build := exec.Command("go", "build", "-o", binPath, svc.URL)
-	build.Env = append(build.Env, env...)
+	build.Env = self.getenv(svc.Id, serviceUrl)
 	build.Dir = svcPath
 	buildOut, err := build.CombinedOutput()
 	println("out: ", string(buildOut))
@@ -94,25 +105,26 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 }
 
 // Remove a Bundle
-func (self *ServiceContext) Remove(req *http.Request, serviceName *string, res *string) error {
+func (self *ServiceContext) Remove(req *http.Request, serviceId *string, res *string) error {
 
 	var err error = nil
 
-	serviceURL, exists := self.Registry[*serviceName]
+	serviceURL, exists := self.Registry[*serviceId]
 	if !exists {
 		return service.NotFound
 	}
 
-	delete(self.Registry, *serviceName)
+	delete(self.Registry, *serviceId)
 
 	// run "remove" command
-	if err = self.run(*serviceName, "remove", map[string]interface{}{}, res); err != nil {
+	if err = self.run(*serviceId, "remove", map[string]interface{}{}, res); err != nil {
 		return err
 	}
 
 	// clean up
 
 	cmd := exec.Command("go", "clean", serviceURL)
+	cmd.Env = self.getenv(*serviceId, serviceURL)
 	out, err := cmd.CombinedOutput()
 	println("out: ", string(out))
 	if err != nil {
@@ -127,14 +139,14 @@ func (self *ServiceContext) Remove(req *http.Request, serviceName *string, res *
 		}
 	}
 
-	binPath := filepath.Join(rootPath, "bin", *serviceName)
+	binPath := filepath.Join(rootPath, "bin", *serviceId)
 	if err = os.RemoveAll(binPath); err != nil {
 		if !os.IsNotExist(err) {
 			return err
 		}
 	}
 
-	svcPath := filepath.Join(rootPath, "svc", *serviceName)
+	svcPath := filepath.Join(rootPath, "svc", *serviceId)
 	if err = os.RemoveAll(svcPath); err != nil {
 		if !os.IsNotExist(err) {
 			return err
@@ -145,9 +157,9 @@ func (self *ServiceContext) Remove(req *http.Request, serviceName *string, res *
 }
 
 // Check Existence of a Service
-func (self *ServiceContext) Exists(req *http.Request, serviceName *string, res *bool) error {
+func (self *ServiceContext) Exists(req *http.Request, serviceId *string, res *bool) error {
 
-	if _, ok := self.Registry[*serviceName]; ok {
+	if _, exists := self.Registry[*serviceId]; exists {
 		*res = true
 	} else {
 		*res = false
@@ -185,31 +197,19 @@ func (self *ServiceContext) Stats(req *http.Request, serviceName *string, res *m
 }
 
 // Run a Service Command
-func (self *ServiceContext) run(serviceName string, commandName string, params map[string]interface{}, res *string) error {
+func (self *ServiceContext) run(serviceId string, commandName string, params map[string]interface{}, res *string) error {
 	var err error = nil
 
-	serviceUrl, serviceExists := self.Registry[serviceName]
+	serviceUrl, serviceExists := self.Registry[serviceId]
 	if !serviceExists {
 		return service.NotFound
 	}
 
-	svcPath := filepath.Join(rootPath, "svc", serviceName)
-	binPath := filepath.Join(svcPath, "bin", serviceName)
-	goRoot := filepath.Join(rootPath, "go")
-	goBin := filepath.Join(goRoot, "bin")
-
-	env := []string{}
-	env = append(env, "GOPATH="+svcPath)
-	env = append(env, "GOROOT="+goRoot)
-	env = append(env, "PATH="+os.Getenv("PATH")+":"+goBin)
-	env = append(env, "SERVICE_NAME="+serviceName)
-	env = append(env, "SERVICE_URL="+serviceUrl)
-	env = append(env, "SERVICE_PATH="+svcPath)
-
-	log.Printf("ENV: %v", env)
-
+	svcPath := filepath.Join(rootPath, "svc", serviceId)
+	binPath := filepath.Join(svcPath, "bin", serviceId)
 	cmd := exec.Command(binPath, commandName)
-	cmd.Env = env
+	cmd.Dir = svcPath
+	cmd.Env = self.getenv(serviceId, serviceUrl)
 
 	b, err := json.Marshal(params)
 	if err != nil {
