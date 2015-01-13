@@ -173,8 +173,10 @@ func main() {
 	}
 
 	// start
-	log.Printf("Starting HTTP on http://%s\n", listen)
-	log.Panic(httpServer.ListenAndServe())
+	go func() {
+		log.Printf("Starting HTTP on http://%s\n", listen)
+		log.Panic(httpServer.ListenAndServe())
+	}()
 
 	// exit handled by signal handlers
 	halt := make(chan bool)
