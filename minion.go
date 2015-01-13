@@ -21,8 +21,8 @@ var (
 	listen     string = "0.0.0.0:9090"
 	rootPath   string = currentDir()
 	pidFile    string = "log/minion.pid"
-	errorFile  string = "log/error.log"
-	accessFile string = "log/access.log"
+	errorFile  string = "log/minion-error.log"
+	accessFile string = "log/minion-access.log"
 	quiet      bool   = false
 	signal     string = ""
 )
@@ -55,7 +55,7 @@ func main() {
 		PidFilePerm: 0644,
 		LogFileName: errorFile,
 		LogFilePerm: 0644,
-		WorkDir:     "./",
+		WorkDir:     rootPath,
 		Umask:       027,
 		Args:        []string{},
 	}
@@ -96,7 +96,7 @@ func main() {
 	if err != nil {
 		if os.IsNotExist(err) {
 			dir := path.Dir(errorFile)
-			err = os.MkdirAll(dir, 755)
+			err = os.MkdirAll(dir, 644)
 			if err != nil {
 				log.Panic(err)
 			}
@@ -110,7 +110,7 @@ func main() {
 	if err != nil {
 		if os.IsNotExist(err) {
 			dir := path.Dir(accessFile)
-			err = os.MkdirAll(dir, 755)
+			err = os.MkdirAll(dir, 644)
 			if err != nil {
 				log.Panic(err)
 			}
@@ -120,14 +120,14 @@ func main() {
 	}
 
 	// open access log
-	accessLog, err := os.OpenFile(accessFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	accessLog, err := os.OpenFile(accessFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		log.Panic("error opening access log: %v", err)
 	}
 	defer accessLog.Close()
 
 	// open error log
-	errorLog, err := os.OpenFile(errorFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	errorLog, err := os.OpenFile(errorFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		log.Panic("error opening error log: %v", err)
 	}
