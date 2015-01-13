@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	// "log"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -35,9 +36,9 @@ type ServiceInstall struct {
 //
 // ----------------------------------------------------------------------------
 
-func (self *ServiceContext) getenv(serviceName string, serviceUrl string) []string {
+func (self *ServiceContext) getenv(serviceId string, serviceUrl string) []string {
 
-	svcPath := filepath.Join(rootPath, "svc", serviceName)
+	svcPath := filepath.Join(rootPath, "svc", serviceId)
 	goRoot := filepath.Join(rootPath, "go")
 	goBin := filepath.Join(goRoot, "bin")
 
@@ -45,7 +46,7 @@ func (self *ServiceContext) getenv(serviceName string, serviceUrl string) []stri
 	env = append(env, "GOPATH="+svcPath)
 	env = append(env, "GOROOT="+goRoot)
 	env = append(env, "PATH="+os.Getenv("PATH")+":"+goBin)
-	env = append(env, "SERVICE_NAME="+serviceName)
+	env = append(env, "SERVICE_ID="+serviceId)
 	env = append(env, "SERVICE_URL="+serviceUrl)
 	env = append(env, "SERVICE_PATH="+svcPath)
 	return env
@@ -98,6 +99,14 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 
 	self.Registry[svc.Id] = svc.URL
 
+	// write the url file
+	jsonFile := filepath.Join(svcPath, "service.json")
+	jsonData, err := json.Marshal(svc)
+	if err != nil {
+		return err
+	}
+	ioutil.WriteFile(jsonFile, jsonData, 0755)
+
 	// run "install" command
 	if err = self.run(svc.Id, "install", svc.Params, res); err != nil {
 		return err
@@ -124,10 +133,13 @@ func (self *ServiceContext) Remove(req *http.Request, serviceId *string, res *st
 		return err
 	}
 
+	svcPath := filepath.Join(rootPath, "svc", svc.Id)
+
 	// clean up
 
 	cmd := exec.Command("go", "clean", serviceURL)
 	cmd.Env = self.getenv(*serviceId, serviceURL)
+	cmd.Dir = svcPath
 	out, err := cmd.CombinedOutput()
 	println("out: ", string(out))
 	if err != nil {

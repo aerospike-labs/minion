@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -13,7 +15,7 @@ import (
 	eventsource "github.com/antage/eventsource"
 	handlers "github.com/gorilla/handlers"
 	rpc "github.com/gorilla/rpc/v2"
-	json "github.com/gorilla/rpc/v2/json"
+	jsonrpc "github.com/gorilla/rpc/v2/json"
 	daemon "github.com/sevlyar/go-daemon"
 )
 
@@ -48,6 +50,53 @@ func checkFile(file string) string {
 	}
 
 	return file
+}
+
+func checkDir(dir string) string {
+
+	var err error = nil
+
+	if !path.IsAbs(dir) {
+		dir = path.Join(rootPath, dir)
+	}
+
+	_, err = os.Stat(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = os.MkdirAll(dir, 0755)
+			if err != nil {
+				log.Panic(err)
+			}
+		} else {
+			log.Panic(err)
+		}
+	}
+
+	return dir
+}
+
+func checkServices() {
+
+	servicesDir := checkDir(filepath.Join(rootPath, "svc"))
+	servicesList, err := ioutil.ReadDir(servicesDir)
+	if err != nil {
+		log.Panic(err)
+	}
+	for _, svcDir := range servicesDir {
+		if svcDir.IsDir() {
+
+			svcFile := filepath.Join(servicesDir, svcDir.Name(), "service.json")
+			println("svcFile", svcFile)
+			_, err = os.Stat(svcFile)
+			if err == nil {
+				var svc ServiceInstall
+				err := json.Unmarshal(ioutil.ReadFile(svcFile), &svc)
+				if err != nil {
+					log.Panic(err)
+				}
+			}
+		}
+	}
 }
 
 func main() {
@@ -130,7 +179,7 @@ func main() {
 
 	// export services
 	rpcServer := rpc.NewServer()
-	rpcServer.RegisterCodec(json.NewCodec(), "application/json")
+	rpcServer.RegisterCodec(jsonrpc.NewCodec(), "application/json")
 	rpcServer.RegisterService(serviceContext, "Service")
 
 	// routes
@@ -165,6 +214,8 @@ func main() {
 			}
 		}
 	}()
+
+	checkServices()
 
 	// start
 	go func() {
