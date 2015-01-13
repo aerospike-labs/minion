@@ -72,7 +72,7 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	os.MkdirAll(svcPath, 0755)
 
 	// env
-	env = self.getenv(svc.Id, serviceUrl)
+	env := self.getenv(svc.Id, serviceUrl)
 
 	log.Printf("ENV: %v\n\n", env)
 
