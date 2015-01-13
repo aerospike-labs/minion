@@ -75,7 +75,7 @@ func checkDir(dir string) string {
 	return dir
 }
 
-func checkServices() {
+func checkServices(ctx *ServiceContext) {
 
 	servicesDir := checkDir(filepath.Join(rootPath, "svc"))
 	servicesList, err := ioutil.ReadDir(servicesDir)
@@ -93,8 +93,8 @@ func checkServices() {
 				if err == nil {
 					var svc ServiceInstall
 					err := json.Unmarshal(svcData, &svc)
-					if err != nil {
-						log.Panic(err)
+					if err == nil {
+						ctx.Registry[svc.Id] = svc.URL
 					}
 				}
 			}
@@ -218,7 +218,7 @@ func main() {
 		}
 	}()
 
-	checkServices()
+	checkServices(serviceContext)
 
 	// start
 	go func() {
