@@ -57,6 +57,7 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	env := []string{}
 	env = append(env, "GOPATH="+svcPath)
 	env = append(env, "GOROOT="+os.Getenv("GOROOT"))
+	env = append(env, "PATH="+os.Getenv("PATH"))
 
 	// download the service
 	get := exec.Command("go", "get", "-u", svc.URL)
@@ -192,11 +193,16 @@ func (self *ServiceContext) run(serviceName string, commandName string, params m
 	svcPath := filepath.Join(rootPath, "svc", serviceName)
 	binPath := filepath.Join(svcPath, "bin", serviceName)
 
+	env := []string{}
+	env = append(env, "GOPATH="+svcPath)
+	env = append(env, "GOROOT="+os.Getenv("GOROOT"))
+	env = append(env, "PATH="+os.Getenv("PATH"))
+	env = append(env, "SERVICE_NAME="+serviceName)
+	env = append(env, "SERVICE_URL="+serviceUrl)
+	env = append(env, "SERVICE_PATH="+svcPath)
+
 	cmd := exec.Command(binPath, commandName)
-	cmd.Env = append(cmd.Env, "GOPATH="+svcPath)
-	cmd.Env = append(cmd.Env, "SERVICE_NAME="+serviceName)
-	cmd.Env = append(cmd.Env, "SERVICE_URL="+serviceUrl)
-	cmd.Env = append(cmd.Env, "SERVICE_PATH="+svcPath)
+	cmd.Env = append(cmd.Env, env...)
 
 	b, err := json.Marshal(params)
 	if err != nil {
