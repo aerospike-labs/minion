@@ -5,7 +5,7 @@ import (
 
 	"bytes"
 	"encoding/json"
-	// "log"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -71,9 +71,14 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	svcPath := filepath.Join(rootPath, "svc", svc.Id)
 	os.MkdirAll(svcPath, 0755)
 
+	// env
+	env = self.getenv(svc.Id, serviceUrl)
+
+	log.Printf("ENV: %v\n\n", env)
+
 	// download the service
 	get := exec.Command("go", "get", "-u", svc.URL)
-	get.Env = self.getenv(svc.Id, serviceUrl)
+	get.Env = env
 	get.Dir = svcPath
 	getOut, err := get.CombinedOutput()
 	println("out: ", string(getOut))
@@ -84,7 +89,7 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 
 	binPath := filepath.Join("bin", svc.Id)
 	build := exec.Command("go", "build", "-o", binPath, svc.URL)
-	build.Env = self.getenv(svc.Id, serviceUrl)
+	build.Env = env
 	build.Dir = svcPath
 	buildOut, err := build.CombinedOutput()
 	println("out: ", string(buildOut))
