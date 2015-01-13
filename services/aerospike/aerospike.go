@@ -312,7 +312,7 @@ func (svc *AerospikeService) Stats() (map[string]interface{}, error) {
 func (svc *AerospikeService) run(commandName string) (string, error) {
 	var err error = nil
 
-	binPath := filepath.Join(svcPath, "bin", "aerospike")
+	binPath := filepath.Join("bin", "aerospike")
 
 	cmd := exec.Command(binPath, commandName)
 	cmd.Dir = filepath.Join(svcPath, "aerospike-server")
