@@ -74,8 +74,6 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	// env
 	env := self.getenv(svc.Id, serviceUrl)
 
-	log.Printf("ENV: %v\n\n", env)
-
 	// download the service
 	get := exec.Command("go", "get", "-u", svc.URL)
 	get.Env = env
