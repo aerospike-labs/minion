@@ -81,6 +81,9 @@ func main() {
 	os.Setenv("GOPATH", rootPath)
 
 	// ensure path variables are absolute paths
+	if !path.IsAbs(pidFile) {
+		pidFile = path.Join(rootPath, pidFile)
+	}
 	if !path.IsAbs(errorFile) {
 		errorFile = path.Join(rootPath, errorFile)
 	}
