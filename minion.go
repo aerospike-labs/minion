@@ -2,11 +2,11 @@ package main
 
 import (
 	"flag"
-	// "io"
 	"log"
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -74,7 +74,8 @@ func main() {
 	daemon.AddCommand(daemon.StringFlag(&command, "stop"), syscall.SIGTERM, signalTerm)
 	daemon.AddCommand(daemon.StringFlag(&command, "reload"), syscall.SIGHUP, signalHup)
 
-	os.Setenv("GOPATH", rootPath)
+	os.Setenv("GOPATH", filepath.Join(rootPath, "go"))
+	os.Setenv("PATH", os.Getenv("PATH")+":"+filepath.Join(rootPath, "go", "bin"))
 
 	// check files
 	pidFile = checkFile(pidFile)
