@@ -94,7 +94,7 @@ func checkServices(ctx *ServiceContext) {
 					var svc ServiceInstall
 					err := json.Unmarshal(svcData, &svc)
 					if err == nil {
-						ctx.Registry[svc.Id] = svc.URL
+						ctx.Registry[svc.Id] = &svc
 					}
 				}
 			}
@@ -177,7 +177,7 @@ func main() {
 	// services contexts
 	serviceContext := &ServiceContext{
 		SendEventMessage: eventSource.SendEventMessage,
-		Registry:         map[string]string{},
+		Registry:         map[string]*ServiceInstall{},
 	}
 
 	// export services

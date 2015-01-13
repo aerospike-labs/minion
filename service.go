@@ -21,7 +21,7 @@ import (
 
 type ServiceContext struct {
 	SendEventMessage func(data, event, id string)
-	Registry         map[string]string
+	Registry         map[string]*ServiceInstall
 }
 
 type ServiceInstall struct {
@@ -53,7 +53,7 @@ func (self *ServiceContext) getenv(serviceId string, serviceUrl string) []string
 }
 
 // List Bundles
-func (self *ServiceContext) List(req *http.Request, args *struct{}, res *map[string]string) error {
+func (self *ServiceContext) List(req *http.Request, args *struct{}, res *map[string]*ServiceInstall) error {
 	*res = self.Registry
 	return nil
 }
@@ -63,8 +63,7 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 
 	var err error = nil
 
-	serviceUrl, exists := self.Registry[svc.Id]
-	if exists {
+	if _, exists := self.Registry[svc.Id]; exists {
 		return service.Exists
 	}
 
@@ -73,7 +72,7 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	os.MkdirAll(svcPath, 0755)
 
 	// env
-	env := self.getenv(svc.Id, serviceUrl)
+	env := self.getenv(svc.Id, svc.URL)
 
 	// download the service
 	get := exec.Command("go", "get", "-u", svc.URL)
@@ -97,7 +96,7 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 		return err
 	}
 
-	self.Registry[svc.Id] = svc.URL
+	self.Registry[svc.Id] = svc
 
 	// write the url file
 	jsonFile := filepath.Join(svcPath, "service.json")
@@ -121,24 +120,24 @@ func (self *ServiceContext) Remove(req *http.Request, serviceId *string, res *st
 
 	var err error = nil
 
-	serviceURL, exists := self.Registry[*serviceId]
+	svc, exists := self.Registry[*serviceId]
 	if !exists {
 		return service.NotFound
 	}
 
-	delete(self.Registry, *serviceId)
+	delete(self.Registry, svc.Id)
 
 	// run "remove" command
-	if err = self.run(*serviceId, "remove", map[string]interface{}{}, res); err != nil {
+	if err = self.run(svc.Id, "remove", map[string]interface{}{}, res); err != nil {
 		return err
 	}
 
-	svcPath := filepath.Join(rootPath, "svc", *serviceId)
+	svcPath := filepath.Join(rootPath, "svc", svc.Id)
 
 	// clean up
 
-	cmd := exec.Command("go", "clean", serviceURL)
-	cmd.Env = self.getenv(*serviceId, serviceURL)
+	cmd := exec.Command("go", "clean", svc.URL)
+	cmd.Env = self.getenv(*serviceId, svc.URL)
 	cmd.Dir = svcPath
 	out, err := cmd.CombinedOutput()
 	println("out: ", string(out))
@@ -147,14 +146,14 @@ func (self *ServiceContext) Remove(req *http.Request, serviceId *string, res *st
 		return err
 	}
 
-	srcPath := filepath.Join(rootPath, "src", serviceURL)
+	srcPath := filepath.Join(rootPath, "src", svc.URL)
 	if err = os.RemoveAll(srcPath); err != nil {
 		if !os.IsNotExist(err) {
 			return err
 		}
 	}
 
-	binPath := filepath.Join(rootPath, "bin", *serviceId)
+	binPath := filepath.Join(rootPath, "bin", svc.Id)
 	if err = os.RemoveAll(binPath); err != nil {
 		if !os.IsNotExist(err) {
 			return err
@@ -214,16 +213,16 @@ func (self *ServiceContext) Stats(req *http.Request, serviceName *string, res *m
 func (self *ServiceContext) run(serviceId string, commandName string, params map[string]interface{}, res *string) error {
 	var err error = nil
 
-	serviceUrl, serviceExists := self.Registry[serviceId]
-	if !serviceExists {
+	svc, exists := self.Registry[serviceId]
+	if !exists {
 		return service.NotFound
 	}
 
-	svcPath := filepath.Join(rootPath, "svc", serviceId)
-	binPath := filepath.Join(svcPath, "bin", serviceId)
+	svcPath := filepath.Join(rootPath, "svc", svc.Id)
+	binPath := filepath.Join(svcPath, "bin", svc.Id)
 	cmd := exec.Command(binPath, commandName)
 	cmd.Dir = svcPath
-	cmd.Env = self.getenv(serviceId, serviceUrl)
+	cmd.Env = self.getenv(serviceId, svc.URL)
 
 	b, err := json.Marshal(params)
 	if err != nil {
