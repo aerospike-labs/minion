@@ -69,7 +69,7 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 		return err
 	}
 
-	binPath := filepath.Join(rootPath, "bin", svc.Id)
+	binPath := filepath.Join(svcPath, "bin", svc.Id)
 	build := exec.Command("go", "build", "-o", binPath, svc.URL)
 	build.Env = append(build.Env, env...)
 	buildOut, err := build.CombinedOutput()
