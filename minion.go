@@ -92,6 +92,20 @@ func main() {
 	}
 
 	// check the errorPath
+	_, err = os.Stat(pidFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			dir := path.Dir(pidFile)
+			err = os.MkdirAll(dir, 644)
+			if err != nil {
+				log.Panic(err)
+			}
+		} else {
+			log.Panic(err)
+		}
+	}
+
+	// check the errorPath
 	_, err = os.Stat(errorFile)
 	if err != nil {
 		if os.IsNotExist(err) {
