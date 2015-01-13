@@ -198,7 +198,7 @@ func (self *ServiceContext) run(serviceName string, commandName string, params m
 	env := []string{}
 	env = append(env, "GOPATH="+svcPath)
 	env = append(env, "GOROOT="+os.Getenv("GOROOT"))
-	env = append(env, "PATH="+os.Getenv("PATH"))
+	env = append(env, "PATH="+os.Getenv("PATH")+":"+filepath.Join(os.Getenv("GOROOT"), "bin"))
 	env = append(env, "SERVICE_NAME="+serviceName)
 	env = append(env, "SERVICE_URL="+serviceUrl)
 	env = append(env, "SERVICE_PATH="+svcPath)
