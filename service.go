@@ -62,6 +62,7 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	// download the service
 	get := exec.Command("go", "get", "-u", svc.URL)
 	get.Env = append(get.Env, env...)
+	get.Dir = svcPath
 	getOut, err := get.CombinedOutput()
 	println("out: ", string(getOut))
 	if err != nil {
@@ -69,9 +70,10 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 		return err
 	}
 
-	binPath := filepath.Join(svcPath, "bin", svc.Id)
+	binPath := filepath.Join("bin", svc.Id)
 	build := exec.Command("go", "build", "-o", binPath, svc.URL)
 	build.Env = append(build.Env, env...)
+	build.Dir = svcPath
 	buildOut, err := build.CombinedOutput()
 	println("out: ", string(buildOut))
 	if err != nil {
