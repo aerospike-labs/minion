@@ -20,8 +20,9 @@ import (
 var (
 	listen     string = "0.0.0.0:9090"
 	rootPath   string = currentDir()
-	errorPath  string = "log/error.log"
-	accessPath string = "log/access.log"
+	pidFile    string = "log/minion.pid"
+	errorFile  string = "log/error.log"
+	accessFile string = "log/access.log"
 	quiet      bool   = false
 	signal     string = ""
 )
@@ -32,10 +33,11 @@ func main() {
 	var err error
 
 	// parse arguments
-	flag.StringVar(&listen, "listen", listen, "Listening address and port for the service")
-	flag.StringVar(&rootPath, "root", rootPath, "Path to minion root")
-	flag.StringVar(&errorPath, "error", errorPath, "Path to error log")
-	flag.StringVar(&accessPath, "access", accessPath, "Path to access log")
+	flag.StringVar(&listen, "listen", listen, "Listening address and port for the service.")
+	flag.StringVar(&pidFile, "pid", pidFile, "Path to PID file.")
+	flag.StringVar(&errorFile, "error", errorFile, "Path to error log file.")
+	flag.StringVar(&accessFile, "access", accessFile, "Path to access log file.")
+	flag.StringVar(&rootPath, "root", rootPath, "Path to minion root.")
 	flag.BoolVar(&quiet, "quiet", quiet, "If enabled, then do not send output to console.")
 	flag.StringVar(&signal, "signal", signal, `send signal to the daemon
 		quit — graceful shutdown
@@ -43,21 +45,54 @@ func main() {
 		reload — reloading the configuration file`)
 	flag.Parse()
 
+	// daemon signal handlers
+	daemon.AddCommand(daemon.StringFlag(&signal, "quit"), syscall.SIGQUIT, signalTerm)
+	daemon.AddCommand(daemon.StringFlag(&signal, "stop"), syscall.SIGTERM, signalTerm)
+	daemon.AddCommand(daemon.StringFlag(&signal, "reload"), syscall.SIGHUP, signalHup)
+
+	ctx := &daemon.Context{
+		PidFileName: pidFile,
+		PidFilePerm: 0644,
+		LogFileName: errorFile,
+		LogFilePerm: 0644,
+		WorkDir:     "./",
+		Umask:       027,
+		Args:        []string{},
+	}
+
+	if len(daemon.ActiveFlags()) > 0 {
+		d, err := ctx.Search()
+		if err != nil {
+			log.Fatalln("Unable send signal to the daemon:", err)
+		}
+		daemon.SendCommands(d)
+		return
+	}
+
+	d, err := ctx.Reborn()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if d != nil {
+		return
+	}
+	defer ctx.Release()
+
 	os.Setenv("GOPATH", rootPath)
 
 	// ensure path variables are absolute paths
-	if !path.IsAbs(errorPath) {
-		errorPath = path.Join(rootPath, errorPath)
+	if !path.IsAbs(errorFile) {
+		errorFile = path.Join(rootPath, errorFile)
 	}
-	if !path.IsAbs(accessPath) {
-		accessPath = path.Join(rootPath, accessPath)
+	if !path.IsAbs(accessFile) {
+		accessFile = path.Join(rootPath, accessFile)
 	}
 
 	// check the errorPath
-	_, err = os.Stat(errorPath)
+	_, err = os.Stat(errorFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			dir := path.Dir(errorPath)
+			dir := path.Dir(errorFile)
 			err = os.MkdirAll(dir, 755)
 			if err != nil {
 				log.Panic(err)
@@ -68,10 +103,10 @@ func main() {
 	}
 
 	// check the accessPath
-	_, err = os.Stat(accessPath)
+	_, err = os.Stat(accessFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			dir := path.Dir(accessPath)
+			dir := path.Dir(accessFile)
 			err = os.MkdirAll(dir, 755)
 			if err != nil {
 				log.Panic(err)
@@ -82,14 +117,14 @@ func main() {
 	}
 
 	// open access log
-	accessLog, err := os.OpenFile(accessPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	accessLog, err := os.OpenFile(accessFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Panic("error opening access log: %v", err)
 	}
 	defer accessLog.Close()
 
 	// open error log
-	errorLog, err := os.OpenFile(errorPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	errorLog, err := os.OpenFile(errorFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Panic("error opening error log: %v", err)
 	}
@@ -101,11 +136,6 @@ func main() {
 	} else {
 		log.SetOutput(io.MultiWriter(os.Stdout, errorLog))
 	}
-
-	// daemon signal handlers
-	daemon.AddCommand(daemon.StringFlag(&signal, "quit"), syscall.SIGQUIT, signalTerm)
-	daemon.AddCommand(daemon.StringFlag(&signal, "stop"), syscall.SIGTERM, signalTerm)
-	daemon.AddCommand(daemon.StringFlag(&signal, "reload"), syscall.SIGHUP, signalHup)
 
 	// server sent events
 	eventSource := eventsource.New(nil, nil)
@@ -157,21 +187,20 @@ func main() {
 		}
 	}()
 
-	// start
-	// go func() {
-	// }()
-
 	// daemon handles signals
 	if err = daemon.ServeSignals(); err != nil {
 		log.Panic(err)
 	}
 
+	// start
+	// go func() {
 	log.Printf("Starting HTTP on http://%s\n", listen)
 	log.Panic(httpServer.ListenAndServe())
+	// }()
 
 	// exit handled by signal handlers
-	// halt := make(chan bool)
-	// <-halt
+	halt := make(chan bool)
+	<-halt
 }
 
 func currentDir() string {
