@@ -139,6 +139,8 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 		return err
 	}
 
+	// workPath = filepath.Join(svcPath, )
+
 	tarReader := tar.NewReader(gzipReader)
 	for {
 		hdr, err := tarReader.Next()
@@ -180,7 +182,7 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 	aerospikeCommand := filepath.Join(aerospikePath, "bin", "aerospike")
 
 	cmd := exec.Command(aerospikeCommand, "init")
-	cmd.Dir = svcPath
+	cmd.Dir = filepath.Join(svcPath, "aerospike-server")
 	_, err = cmd.CombinedOutput()
 	if err != nil {
 		return err
@@ -192,14 +194,13 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 func (svc *AerospikeService) Remove() error {
 
 	var err error
-	svcPath := os.Getenv("SERVICE_PATH")
 
 	// run aerospike destroy
 	aerospikePath := filepath.Join(svcPath, "aerospike-server")
 	aerospikeCommand := filepath.Join(aerospikePath, "bin", "aerospike")
 
 	cmd := exec.Command(aerospikeCommand, "destroy")
-	cmd.Dir = svcPath
+	cmd.Dir = filepath.Join(svcPath, "aerospike-server")
 	_, err = cmd.CombinedOutput()
 	if err != nil {
 		return err
@@ -314,7 +315,7 @@ func (svc *AerospikeService) run(commandName string) (string, error) {
 	binPath := filepath.Join(svcPath, "bin", "aerospike")
 
 	cmd := exec.Command(binPath, commandName)
-	cmd.Dir = svcPath
+	cmd.Dir = filepath.Join(svcPath, "aerospike-server")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", err
