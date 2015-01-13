@@ -158,8 +158,20 @@ func main() {
 	}()
 
 	// start
+	// go func() {
+	// }()
+
+	// daemon handles signals
+	if err = daemon.ServeSignals(); err != nil {
+		log.Panic(err)
+	}
+
 	log.Printf("Starting HTTP on http://%s\n", listen)
 	log.Panic(httpServer.ListenAndServe())
+
+	// exit handled by signal handlers
+	// halt := make(chan bool)
+	// <-halt
 }
 
 func currentDir() string {
