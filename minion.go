@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"io"
+	// "io"
 	"log"
 	"net/http"
 	"os"
@@ -21,11 +21,35 @@ var (
 	listen     string = "0.0.0.0:9090"
 	rootPath   string = currentDir()
 	pidFile    string = "log/minion.pid"
-	errorFile  string = "log/minion-error.log"
+	logFile    string = "log/minion.log"
 	accessFile string = "log/minion-access.log"
 	quiet      bool   = false
 	signal     string = ""
 )
+
+func checkFile(file string) string {
+
+	var err error = nil
+
+	if !path.IsAbs(file) {
+		file = path.Join(rootPath, file)
+	}
+
+	_, err = os.Stat(file)
+	if err != nil {
+		if os.IsNotExist(err) {
+			dir := path.Dir(file)
+			err = os.MkdirAll(dir, 644)
+			if err != nil {
+				log.Panic(err)
+			}
+		} else {
+			log.Panic(err)
+		}
+	}
+
+	return file
+}
 
 func main() {
 
@@ -35,7 +59,7 @@ func main() {
 	// parse arguments
 	flag.StringVar(&listen, "listen", listen, "Listening address and port for the service.")
 	flag.StringVar(&pidFile, "pid", pidFile, "Path to PID file.")
-	flag.StringVar(&errorFile, "error", errorFile, "Path to error log file.")
+	flag.StringVar(&logFile, "log", logFile, "Path to Log file.")
 	flag.StringVar(&accessFile, "access", accessFile, "Path to access log file.")
 	flag.StringVar(&rootPath, "root", rootPath, "Path to minion root.")
 	flag.BoolVar(&quiet, "quiet", quiet, "If enabled, then do not send output to console.")
@@ -52,63 +76,16 @@ func main() {
 
 	os.Setenv("GOPATH", rootPath)
 
-	// ensure path variables are absolute paths
-	if !path.IsAbs(pidFile) {
-		pidFile = path.Join(rootPath, pidFile)
-	}
-	if !path.IsAbs(errorFile) {
-		errorFile = path.Join(rootPath, errorFile)
-	}
-	if !path.IsAbs(accessFile) {
-		accessFile = path.Join(rootPath, accessFile)
-	}
+	// check files
+	pidFile = checkFile(pidFile)
+	logFile = checkFile(logFile)
+	accessFile = checkFile(accessFile)
 
-	// check the errorPath
-	_, err = os.Stat(pidFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			dir := path.Dir(pidFile)
-			err = os.MkdirAll(dir, 644)
-			if err != nil {
-				log.Panic(err)
-			}
-		} else {
-			log.Panic(err)
-		}
-	}
-
-	// check the errorPath
-	_, err = os.Stat(errorFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			dir := path.Dir(errorFile)
-			err = os.MkdirAll(dir, 644)
-			if err != nil {
-				log.Panic(err)
-			}
-		} else {
-			log.Panic(err)
-		}
-	}
-
-	// check the accessPath
-	_, err = os.Stat(accessFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			dir := path.Dir(accessFile)
-			err = os.MkdirAll(dir, 644)
-			if err != nil {
-				log.Panic(err)
-			}
-		} else {
-			log.Panic(err)
-		}
-	}
-
+	// daemon context
 	ctx := &daemon.Context{
 		PidFileName: pidFile,
 		PidFilePerm: 0644,
-		LogFileName: errorFile,
+		LogFileName: logFile,
 		LogFilePerm: 0644,
 		WorkDir:     rootPath,
 		Umask:       027,
@@ -139,20 +116,6 @@ func main() {
 		log.Panic("error opening access log: %v", err)
 	}
 	defer accessLog.Close()
-
-	// open error log
-	errorLog, err := os.OpenFile(errorFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		log.Panic("error opening error log: %v", err)
-	}
-	defer errorLog.Close()
-
-	// set log to error log
-	if quiet {
-		log.SetOutput(errorLog)
-	} else {
-		log.SetOutput(io.MultiWriter(os.Stdout, errorLog))
-	}
 
 	// server sent events
 	eventSource := eventsource.New(nil, nil)
