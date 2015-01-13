@@ -110,6 +110,11 @@ func main() {
 	}
 	defer ctx.Release()
 
+	// daemon handles signals
+	if err = daemon.ServeSignals(); err != nil {
+		log.Panic(err)
+	}
+
 	// open access log
 	accessLog, err := os.OpenFile(accessFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
@@ -166,11 +171,6 @@ func main() {
 			}
 		}
 	}()
-
-	// daemon handles signals
-	if err = daemon.ServeSignals(); err != nil {
-		log.Panic(err)
-	}
 
 	// start
 	go func() {
