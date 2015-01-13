@@ -82,17 +82,20 @@ func checkServices() {
 	if err != nil {
 		log.Panic(err)
 	}
-	for _, svcDir := range servicesDir {
+	for _, svcDir := range servicesList {
 		if svcDir.IsDir() {
 
 			svcFile := filepath.Join(servicesDir, svcDir.Name(), "service.json")
 			println("svcFile", svcFile)
 			_, err = os.Stat(svcFile)
 			if err == nil {
-				var svc ServiceInstall
-				err := json.Unmarshal(ioutil.ReadFile(svcFile), &svc)
-				if err != nil {
-					log.Panic(err)
+				svcData, err := ioutil.ReadFile(svcFile)
+				if err == nil {
+					var svc ServiceInstall
+					err := json.Unmarshal(svcData, &svc)
+					if err != nil {
+						log.Panic(err)
+					}
 				}
 			}
 		}

@@ -133,7 +133,7 @@ func (self *ServiceContext) Remove(req *http.Request, serviceId *string, res *st
 		return err
 	}
 
-	svcPath := filepath.Join(rootPath, "svc", svc.Id)
+	svcPath := filepath.Join(rootPath, "svc", *serviceId)
 
 	// clean up
 
@@ -161,7 +161,6 @@ func (self *ServiceContext) Remove(req *http.Request, serviceId *string, res *st
 		}
 	}
 
-	svcPath := filepath.Join(rootPath, "svc", *serviceId)
 	if err = os.RemoveAll(svcPath); err != nil {
 		if !os.IsNotExist(err) {
 			return err
