@@ -110,11 +110,6 @@ func main() {
 	}
 	defer ctx.Release()
 
-	// daemon handles signals
-	if err = daemon.ServeSignals(); err != nil {
-		log.Panic(err)
-	}
-
 	// open access log
 	accessLog, err := os.OpenFile(accessFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
 	if err != nil {
@@ -179,6 +174,11 @@ func main() {
 		log.Printf("Starting HTTP on http://%s\n", listen)
 		log.Panic(httpServer.ListenAndServe())
 	}()
+
+	// daemon handles signals
+	if err = daemon.ServeSignals(); err != nil {
+		log.Panic(err)
+	}
 
 	// exit handled by signal handlers
 	halt := make(chan bool)
