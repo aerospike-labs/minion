@@ -315,8 +315,6 @@ func (svc *AerospikeService) run(commandName string) (string, error) {
 	aerospikePath := filepath.Join(svcPath, "aerospike-server")
 	aerospikeCommand := filepath.Join(aerospikePath, "bin", "aerospike")
 
-	binPath := filepath.Join("bin", "aerospike")
-
 	cmd := exec.Command(aerospikeCommand, commandName)
 	cmd.Dir = aerospikePath
 	out, err := cmd.CombinedOutput()
