@@ -167,8 +167,6 @@ func main() {
 		}
 	}()
 
-	println("Starting http shit")
-
 	// start
 	go func() {
 		log.Printf("Starting HTTP on http://%s\n", listen)
