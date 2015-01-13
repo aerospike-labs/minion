@@ -50,34 +50,6 @@ func main() {
 	daemon.AddCommand(daemon.StringFlag(&signal, "stop"), syscall.SIGTERM, signalTerm)
 	daemon.AddCommand(daemon.StringFlag(&signal, "reload"), syscall.SIGHUP, signalHup)
 
-	ctx := &daemon.Context{
-		PidFileName: pidFile,
-		PidFilePerm: 0644,
-		LogFileName: errorFile,
-		LogFilePerm: 0644,
-		WorkDir:     rootPath,
-		Umask:       027,
-		Args:        []string{},
-	}
-
-	if len(daemon.ActiveFlags()) > 0 {
-		d, err := ctx.Search()
-		if err != nil {
-			log.Fatalln("Unable send signal to the daemon:", err)
-		}
-		daemon.SendCommands(d)
-		return
-	}
-
-	d, err := ctx.Reborn()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	if d != nil {
-		return
-	}
-	defer ctx.Release()
-
 	os.Setenv("GOPATH", rootPath)
 
 	// ensure path variables are absolute paths
@@ -132,6 +104,34 @@ func main() {
 			log.Panic(err)
 		}
 	}
+
+	ctx := &daemon.Context{
+		PidFileName: pidFile,
+		PidFilePerm: 0644,
+		LogFileName: errorFile,
+		LogFilePerm: 0644,
+		WorkDir:     rootPath,
+		Umask:       027,
+		Args:        []string{},
+	}
+
+	if len(daemon.ActiveFlags()) > 0 {
+		d, err := ctx.Search()
+		if err != nil {
+			log.Fatalln("Unable send signal to the daemon:", err)
+		}
+		daemon.SendCommands(d)
+		return
+	}
+
+	d, err := ctx.Reborn()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if d != nil {
+		return
+	}
+	defer ctx.Release()
 
 	// open access log
 	accessLog, err := os.OpenFile(accessFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
@@ -210,10 +210,8 @@ func main() {
 	}
 
 	// start
-	// go func() {
 	log.Printf("Starting HTTP on http://%s\n", listen)
 	log.Panic(httpServer.ListenAndServe())
-	// }()
 
 	// exit handled by signal handlers
 	halt := make(chan bool)
