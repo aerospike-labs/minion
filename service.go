@@ -5,7 +5,7 @@ import (
 
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -206,7 +206,7 @@ func (self *ServiceContext) run(serviceName string, commandName string, params m
 	env = append(env, "SERVICE_URL="+serviceUrl)
 	env = append(env, "SERVICE_PATH="+svcPath)
 
-	fmt.Printf("ENV: %v", env)
+	log.Printf("ENV: %v", env)
 
 	cmd := exec.Command(binPath, commandName)
 	cmd.Env = env
