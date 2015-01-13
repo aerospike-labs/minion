@@ -24,7 +24,6 @@ var (
 	logFile    string = "log/minion.log"
 	accessFile string = "log/minion-access.log"
 	quiet      bool   = false
-	signal     string = ""
 )
 
 func checkFile(file string) string {
@@ -39,7 +38,7 @@ func checkFile(file string) string {
 	if err != nil {
 		if os.IsNotExist(err) {
 			dir := path.Dir(file)
-			err = os.MkdirAll(dir, 644)
+			err = os.MkdirAll(dir, 0755)
 			if err != nil {
 				log.Panic(err)
 			}
@@ -63,16 +62,17 @@ func main() {
 	flag.StringVar(&accessFile, "access", accessFile, "Path to access log file.")
 	flag.StringVar(&rootPath, "root", rootPath, "Path to minion root.")
 	flag.BoolVar(&quiet, "quiet", quiet, "If enabled, then do not send output to console.")
-	flag.StringVar(&signal, "signal", signal, `send signal to the daemon
-		quit — graceful shutdown
-		stop — fast shutdown
-		reload — reloading the configuration file`)
 	flag.Parse()
 
+	command := ""
+	if flag.NArg() == 1 {
+		command = flag.Arg(0)
+	}
+
 	// daemon signal handlers
-	daemon.AddCommand(daemon.StringFlag(&signal, "quit"), syscall.SIGQUIT, signalTerm)
-	daemon.AddCommand(daemon.StringFlag(&signal, "stop"), syscall.SIGTERM, signalTerm)
-	daemon.AddCommand(daemon.StringFlag(&signal, "reload"), syscall.SIGHUP, signalHup)
+	daemon.AddCommand(daemon.StringFlag(&command, "quit"), syscall.SIGQUIT, signalTerm)
+	daemon.AddCommand(daemon.StringFlag(&command, "stop"), syscall.SIGTERM, signalTerm)
+	daemon.AddCommand(daemon.StringFlag(&command, "reload"), syscall.SIGHUP, signalHup)
 
 	os.Setenv("GOPATH", rootPath)
 
@@ -84,9 +84,9 @@ func main() {
 	// daemon context
 	ctx := &daemon.Context{
 		PidFileName: pidFile,
-		PidFilePerm: 0644,
+		PidFilePerm: 0755,
 		LogFileName: logFile,
-		LogFilePerm: 0644,
+		LogFilePerm: 0755,
 		WorkDir:     rootPath,
 		Umask:       027,
 		Args:        []string{},
@@ -116,7 +116,7 @@ func main() {
 	}
 
 	// open access log
-	accessLog, err := os.OpenFile(accessFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	accessLog, err := os.OpenFile(accessFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
 	if err != nil {
 		log.Panic("error opening access log: %v", err)
 	}
@@ -171,6 +171,8 @@ func main() {
 			}
 		}
 	}()
+
+	println("Starting http shit")
 
 	// start
 	go func() {
