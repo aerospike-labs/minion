@@ -211,7 +211,8 @@ func main() {
 					var res string
 					err := serviceContext.run(name, "stats", params, &res)
 					if err == nil {
-						serviceContext.SendEventMessage(res, "stats:"+name, "")
+						event := filepath.Join("stats", name)
+						serviceContext.SendEventMessage(res, event, "")
 					}
 				}
 			}
