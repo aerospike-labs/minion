@@ -274,7 +274,7 @@ func (svc *AerospikeService) Stats() (map[string]interface{}, error) {
 	var err error
 	stats := map[string]interface{}{}
 
-	conn, err := net.Dial("tcp", "s5:3003")
+	conn, err := net.Dial("tcp", "localhost:3003")
 	if err != nil {
 		return stats, err
 	}
