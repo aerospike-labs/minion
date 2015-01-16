@@ -196,25 +196,38 @@ func (self *ServiceContext) Exists(req *http.Request, serviceId *string, res *bo
 }
 
 // Status of the Service
-func (self *ServiceContext) Status(req *http.Request, serviceName *string, res *string) error {
-	return self.run(*serviceName, "status", map[string]interface{}{}, res)
+func (self *ServiceContext) Status(req *http.Request, serviceId *string, res *string) error {
+	if _, exists := self.Registry[*serviceId]; !exists {
+		return service.NotFound
+	}
+	return self.run(*serviceId, "status", map[string]interface{}{}, res)
 }
 
 // Start the Service
-func (self *ServiceContext) Start(req *http.Request, serviceName *string, res *string) error {
-	return self.run(*serviceName, "start", map[string]interface{}{}, res)
+func (self *ServiceContext) Start(req *http.Request, serviceId *string, res *string) error {
+	if _, exists := self.Registry[*serviceId]; !exists {
+		return service.NotFound
+	}
+	return self.run(*serviceId, "start", map[string]interface{}{}, res)
 }
 
 // Stop the Service
-func (self *ServiceContext) Stop(req *http.Request, serviceName *string, res *string) error {
-	return self.run(*serviceName, "stop", map[string]interface{}{}, res)
+func (self *ServiceContext) Stop(req *http.Request, serviceId *string, res *string) error {
+	if _, exists := self.Registry[*serviceId]; !exists {
+		return service.NotFound
+	}
+	return self.run(*serviceId, "stop", map[string]interface{}{}, res)
 }
 
 // Stats of the Service
-func (self *ServiceContext) Stats(req *http.Request, serviceName *string, res *map[string]int) error {
+func (self *ServiceContext) Stats(req *http.Request, serviceId *string, res *map[string]int) error {
 	var out string = ""
 
-	err := self.run(*serviceName, "stats", map[string]interface{}{}, &out)
+	if _, exists := self.Registry[*serviceId]; !exists {
+		return service.NotFound
+	}
+
+	err := self.run(*serviceId, "stats", map[string]interface{}{}, &out)
 	if err != nil {
 		return err
 	}
@@ -225,18 +238,20 @@ func (self *ServiceContext) Stats(req *http.Request, serviceName *string, res *m
 
 // Run a Service Command
 func (self *ServiceContext) run(serviceId string, commandName string, params map[string]interface{}, res *string) error {
+
 	var err error = nil
+	var serviceUrl string = ""
 
 	svc, exists := self.Registry[serviceId]
-	if !exists {
-		return service.NotFound
+	if exists {
+		serviceUrl = svc.URL
 	}
 
-	svcPath := filepath.Join(rootPath, "svc", svc.Id)
-	binPath := filepath.Join(svcPath, "bin", svc.Id)
+	svcPath := filepath.Join(rootPath, "svc", serviceId)
+	binPath := filepath.Join(svcPath, "bin", serviceId)
 	cmd := exec.Command(binPath, commandName)
 	cmd.Dir = svcPath
-	cmd.Env = self.getenv(serviceId, svc.URL)
+	cmd.Env = self.getenv(serviceId, serviceUrl)
 
 	b, err := json.Marshal(params)
 	if err != nil {
