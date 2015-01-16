@@ -225,7 +225,30 @@ func (svc *AerospikeService) Status() (Status, error) {
 }
 
 func (svc *AerospikeService) Start() error {
-	_, err := svc.run("start")
+
+	// copy file from $CONFIG_PATH/aerospike.conf to
+	// ./aerospike-server/etc/aerospike.conf
+
+	var err error
+
+	src_path := os.ExpandEnv(filepath.Join("$CONFIG_PATH", "aerospike.conf"))
+	dst_path := filepath.Join("aerospike-server", "etc", "aerospike.conf")
+
+	if _, err := os.Stat(src_path); err != nil {
+		return err
+	}
+
+	src_data, err := ioutil.ReadFile(src_path)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(dst_path, src_data, 0755)
+	if err != nil {
+		return err
+	}
+
+	_, err = svc.run("start")
 	return err
 }
 
