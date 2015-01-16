@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	// eventsource "github.com/antage/eventsource"
 	handlers "github.com/gorilla/handlers"
 	rpc "github.com/gorilla/rpc/v2"
 	jsonrpc "github.com/gorilla/rpc/v2/json"
@@ -170,13 +169,8 @@ func main() {
 	}
 	defer accessLog.Close()
 
-	// server sent events
-	// eventSource := eventsource.New(nil, nil)
-	// defer eventSource.Close()
-
 	// services contexts
 	serviceContext := &ServiceContext{
-		// SendEventMessage: eventSource.SendEventMessage,
 		Registry: map[string]*ServiceInstall{},
 	}
 
@@ -188,7 +182,6 @@ func main() {
 	// routes
 	httpRouter := http.NewServeMux()
 	httpRouter.Handle("/rpc", handlers.CombinedLoggingHandler(accessLog, rpcServer))
-	// httpRouter.Handle("/events", handlers.CombinedLoggingHandler(accessLog, eventSource))
 
 	// server
 	httpServer := &http.Server{
@@ -198,25 +191,6 @@ func main() {
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
-
-	// stats polling thread
-	// go func() {
-	// 	params := map[string]interface{}{}
-	// 	for {
-	// 		select {
-	// 		// case m := <-c:
-	// 		// 	handle(m)
-	// 		case <-time.After(time.Second):
-	// 			for name, _ := range serviceContext.Registry {
-	// 				var res string
-	// 				err := serviceContext.run(name, "stats", params, &res)
-	// 				if err == nil {
-	// 					serviceContext.SendEventMessage(res, name, "")
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }()
 
 	checkServices(serviceContext)
 
