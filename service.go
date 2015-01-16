@@ -79,7 +79,6 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	get.Env = env
 	get.Dir = svcPath
 	getOut, err := get.CombinedOutput()
-	println("out: ", string(getOut))
 	if err != nil {
 		println("error: ", err.Error())
 		return err
@@ -90,7 +89,6 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	build.Env = env
 	build.Dir = svcPath
 	buildOut, err := build.CombinedOutput()
-	println("out: ", string(buildOut))
 	if err != nil {
 		println("error: ", err.Error())
 		return err
@@ -125,12 +123,12 @@ func (self *ServiceContext) Remove(req *http.Request, serviceId *string, res *st
 		return service.NotFound
 	}
 
-	delete(self.Registry, svc.Id)
-
 	// run "remove" command
 	if err = self.run(svc.Id, "remove", map[string]interface{}{}, res); err != nil {
 		return err
 	}
+
+	delete(self.Registry, svc.Id)
 
 	svcPath := filepath.Join(rootPath, "svc", svc.Id)
 
@@ -140,7 +138,6 @@ func (self *ServiceContext) Remove(req *http.Request, serviceId *string, res *st
 	cmd.Env = self.getenv(*serviceId, svc.URL)
 	cmd.Dir = svcPath
 	out, err := cmd.CombinedOutput()
-	println("out: ", string(out))
 	if err != nil {
 		println("error: ", err.Error())
 		return err
@@ -149,6 +146,7 @@ func (self *ServiceContext) Remove(req *http.Request, serviceId *string, res *st
 	srcPath := filepath.Join(rootPath, "src", svc.URL)
 	if err = os.RemoveAll(srcPath); err != nil {
 		if !os.IsNotExist(err) {
+			println("error: ", err.Error())
 			return err
 		}
 	}
@@ -156,12 +154,14 @@ func (self *ServiceContext) Remove(req *http.Request, serviceId *string, res *st
 	binPath := filepath.Join(rootPath, "bin", svc.Id)
 	if err = os.RemoveAll(binPath); err != nil {
 		if !os.IsNotExist(err) {
+			println("error: ", err.Error())
 			return err
 		}
 	}
 
 	if err = os.RemoveAll(svcPath); err != nil {
 		if !os.IsNotExist(err) {
+			println("error: ", err.Error())
 			return err
 		}
 	}
