@@ -103,8 +103,6 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 		}
 	}
 
-	self.Registry[svc.Id] = svc
-
 	// write the url file
 	jsonFile := filepath.Join(svcPath, "service.json")
 	jsonData, err := json.Marshal(svc)
@@ -117,6 +115,8 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	if err = self.run(svc.Id, "install", svc.Params, res); err != nil {
 		return err
 	}
+
+	self.Registry[svc.Id] = svc
 
 	// *res = string(out)
 	return err
