@@ -38,6 +38,7 @@ type ServiceInstall struct {
 
 func (self *ServiceContext) getenv(serviceId string, serviceUrl string) []string {
 
+	etcPath := filepath.Join(rootPath, "etc")
 	svcPath := filepath.Join(rootPath, "svc", serviceId)
 	goRoot := filepath.Join(rootPath, "go")
 	goBin := filepath.Join(goRoot, "bin")
@@ -49,6 +50,8 @@ func (self *ServiceContext) getenv(serviceId string, serviceUrl string) []string
 	env = append(env, "SERVICE_ID="+serviceId)
 	env = append(env, "SERVICE_URL="+serviceUrl)
 	env = append(env, "SERVICE_PATH="+svcPath)
+	env = append(env, "MINION_ROOT="+rootPath)
+	env = append(env, "CONFIG_PATH="+etcPath)
 	return env
 }
 
