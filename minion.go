@@ -12,10 +12,10 @@ import (
 	"syscall"
 	"time"
 
-	daemon "github.com/cstivers78/go-daemon"
 	handlers "github.com/gorilla/handlers"
 	rpc "github.com/gorilla/rpc/v2"
 	jsonrpc "github.com/gorilla/rpc/v2/json"
+	daemon "github.com/sevlyar/go-daemon"
 )
 
 var (
@@ -142,6 +142,7 @@ func main() {
 		WorkDir:     rootPath,
 		Umask:       027,
 		Args:        []string{},
+		Credential:  &syscall.Credential{},
 	}
 
 	if len(daemon.ActiveFlags()) > 0 {
