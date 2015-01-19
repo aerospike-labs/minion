@@ -348,7 +348,7 @@ func (svc *AerospikeService) run(commandName string) (string, error) {
 	return string(out), err
 }
 
-// Bundle Main - should call BundleRun, to run the bundle,
+// Main - should call service.Run, to run the service,
 // and process the commands and arguments.
 func main() {
 	Run(&AerospikeService{})

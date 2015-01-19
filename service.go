@@ -92,7 +92,7 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 		}
 	}
 
-	binPath := filepath.Join("bin", svc.Id)
+	binPath := filepath.Join("bin", "service")
 	build := exec.Command("go", "build", "-o", binPath, svc.URL)
 	build.Env = env
 	build.Dir = svcPath
@@ -251,7 +251,7 @@ func (self *ServiceContext) run(serviceId string, commandName string, params map
 	}
 
 	svcPath := filepath.Join(rootPath, "svc", serviceId)
-	binPath := filepath.Join(svcPath, "bin", serviceId)
+	binPath := filepath.Join(svcPath, "bin", "minion-service")
 	cmd := exec.Command(binPath, commandName)
 	cmd.Dir = svcPath
 	cmd.Env = self.getenv(serviceId, serviceUrl)
