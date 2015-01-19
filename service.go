@@ -114,6 +114,16 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	}
 	ioutil.WriteFile(jsonFile, jsonData, 0755)
 
+	// write the url file
+	envFile := filepath.Join(svcPath, "service.env")
+	envData := &bytes.Buffer{}
+	for _, e := range env {
+		envData.WriteString("export ")
+		envData.WriteString(e)
+		envData.WriteRune('\n')
+	}
+	ioutil.WriteFile(envFile, envData.Bytes(), 0755)
+
 	// run "install" command
 	if err = self.run(svc.Id, "install", svc.Params, res); err != nil {
 		return err
