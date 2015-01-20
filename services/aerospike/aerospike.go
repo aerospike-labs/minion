@@ -53,12 +53,12 @@ var (
 		"proxy_ok":   get("stat_proxy_success"),
 		"proxy_errs": get("stat_proxy_errs"),
 
-		"migrate_msgs_sent":             id(),
-		"migrate_msgs_recv":             id(),
-		"migrate_progress_send":         id(),
-		"migrate_progress_recv":         id(),
-		"migrate_num_incoming_accepted": id(),
-		"migrate_num_incoming_refused":  id(),
+		"migrate_msgs_sent":         id(),
+		"migrate_msgs_recv":         id(),
+		"migrate_progress_send":     id(),
+		"migrate_progress_recv":     id(),
+		"migrate_incoming_accepted": get("migrate_num_incoming_accepted"),
+		"migrate_incoming_refused":  get("migrate_num_incoming_refused"),
 
 		"read":              get("stats_read_req"),
 		"read_ok":           get("stat_read_success"),
@@ -71,13 +71,6 @@ var (
 		"write_err":          sum(get("stat_write_errs_notfound"), get("stat_write_errs_other")),
 		"write_err_notfound": get("stat_write_errs_notfound"),
 		"write_err_other":    get("stat_write_errs_other"),
-
-		"objects_evicted": get("stat_evicted_objects"),
-		"objects_expired": get("stat_expired_objects"),
-
-		"proxy":     get("stat_proxy_reqs"),
-		"proxy_ok":  get("stat_proxy_success"),
-		"proxy_err": get("stat_proxy_errs"),
 
 		"query":       get("query_reqs"),
 		"query_ok":    get("query_success"),
@@ -314,19 +307,19 @@ func ScanPairs(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	return start, nil, nil
 }
 
-func id() func(map[string]int) int {
+func id() func(string, map[string]int) int {
 	return func(n string, m map[string]int) int {
 		return m[n]
 	}
 }
 
-func get(k string) func(map[string]int) int {
+func get(k string) func(string, map[string]int) int {
 	return func(n string, m map[string]int) int {
 		return m[k]
 	}
 }
 
-func sum(vals ...func(m map[string]int) int) func(map[string]int) int {
+func sum(vals ...func(n string, m map[string]int) int) func(string, map[string]int) int {
 
 	return func(n string, m map[string]int) int {
 		i := 0
