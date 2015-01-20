@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -26,6 +27,10 @@ import (
 const (
 	AEROSPIKE_TGZ_URL string = "https://www.aerospike.com/artifacts/aerospike-server-community/%s/aerospike-server-community-%s.tar.gz"
 	AEROSPIKE_SHA_URL string = "https://www.aerospike.com/artifacts/aerospike-server-community/%s/aerospike-server-community-%s.tar.gz.sha256"
+)
+
+var (
+	host string = "localhost:3030"
 )
 
 var (
@@ -330,23 +335,25 @@ func sum(vals ...func(n string, m map[string]int) int) func(string, map[string]i
 	}
 }
 
-func (svc *AerospikeService) Stats() (map[string]interface{}, error) {
+func histogramField(c rune) bool {
+	return c == ',' || c == ';' || c == ':'
+}
+
+func statistics(conn net.Conn, stats map[string]interface{}) error {
 
 	var err error
-	stats := map[string]interface{}{}
-
-	conn, err := net.Dial("tcp", "localhost:3003")
-	if err != nil {
-		return stats, err
-	}
+	var out string
 
 	fmt.Fprintf(conn, "statistics\n")
 
-	statistics, err := bufio.NewReader(conn).ReadString('\n')
+	out, err = bufio.NewReader(conn).ReadString('\n')
+	if err != nil {
+		return err
+	}
 
 	rawStats := map[string]int{}
 
-	scanner := bufio.NewScanner(strings.NewReader(statistics))
+	scanner := bufio.NewScanner(strings.NewReader(out))
 	scanner.Split(ScanPairs)
 	for scanner.Scan() {
 		pair := scanner.Text()
@@ -365,6 +372,103 @@ func (svc *AerospikeService) Stats() (map[string]interface{}, error) {
 			stats[k] = fn(k, rawStats)
 		}
 	}
+
+	return err
+}
+
+func processHistogram(out []byte, iStart, iNameEnd, iHeadersEnd, iValuesEnd int, stats map[string]interface{}) error {
+
+	name := string(out[iStart:iNameEnd])
+
+	sHeaders := string(out[iNameEnd+1 : iHeadersEnd])
+	headers := strings.Split(sHeaders, ",")
+
+	sValues := string(out[iHeadersEnd+1 : iValuesEnd])
+	values := strings.Split(sValues, ",")
+
+	for i, h := range headers {
+		prefix := "latency:" + name
+		switch i {
+		case 0:
+			stats[prefix+":start"] = h
+			stats[name+":end"] = values[i]
+		default:
+			switch h[0] {
+			case '<':
+				stats[prefix+":lt:"+h[1:]] = values[i]
+			case '>':
+				stats[prefix+":gt:"+h[1:]] = values[i]
+			default:
+				stats[prefix+":"+h] = values[i]
+			}
+		}
+	}
+
+	return nil
+}
+
+func latency(conn net.Conn, stats map[string]interface{}) error {
+
+	var err error
+	var out []byte
+
+	fmt.Fprintf(conn, "latency:\n")
+
+	out, err = bufio.NewReader(conn).ReadBytes('\n')
+	if err != nil {
+		return err
+	}
+
+	//
+	// OUTPUT:
+	//
+	// reads:21:54:10-GMT,ops/sec,>1ms,>8ms,>64ms;21:54:20,2335.3,0.51,0.00,0.00;
+	// writes_master:21:54:10-GMT,ops/sec,>1ms,>8ms,>64ms;21:54:20,997.1,0.95,0.00,0.00;
+	// proxy:21:54:10-GMT,ops/sec,>1ms,>8ms,>64ms;21:54:20,0.0,0.00,0.00,0.00;
+	// writes_reply:21:54:10-GMT,ops/sec,>1ms,>8ms,>64ms;21:54:20,997.1,0.95,0.00,0.00;
+	// udf:21:54:10-GMT,ops/sec,>1ms,>8ms,>64ms;21:54:20,0.0,0.00,0.00,0.00;
+	// query:21:54:10-GMT,ops/sec,>1ms,>8ms,>64ms;21:54:20,3156.1,2.78,0.00,0.00;
+	//
+
+	iStart := 0
+	iNameEnd := 0
+	iHeadersEnd := 0
+	iValuesEnd := 0
+
+	for i, r := range out {
+		switch {
+		case iNameEnd == 0 && r == ':':
+			iNameEnd = i
+		case iHeadersEnd == 0 && r == ';':
+			iHeadersEnd = i
+		case iValuesEnd == 0 && r == ';':
+			iValuesEnd = i
+			processHistogram(out, iStart, iNameEnd, iHeadersEnd, iValuesEnd, stats)
+			iStart = i + 1
+			iNameEnd = 0
+			iHeadersEnd = 0
+			iValuesEnd = 0
+		}
+	}
+
+	return err
+}
+
+func (svc *AerospikeService) Stats() (map[string]interface{}, error) {
+
+	var err error
+	stats := map[string]interface{}{}
+
+	conn, err := net.Dial("tcp", host)
+	if err != nil {
+		return stats, err
+	}
+
+	// Process 'statistics'
+	statistics(conn, stats)
+
+	// Process 'latency:'
+	latency(conn, stats)
 
 	return stats, nil
 }
@@ -406,5 +510,8 @@ func (svc *AerospikeService) run(commandName string) (string, string, error) {
 // Main - should call service.Run, to run the service,
 // and process the commands and arguments.
 func main() {
+	flag.StringVar(&host, "host", host, "Aerospike address and port.")
+	flag.Parse()
+
 	Run(&AerospikeService{})
 }
