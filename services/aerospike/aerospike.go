@@ -30,7 +30,7 @@ const (
 )
 
 var (
-	host string = "localhost:3030"
+	host string = "localhost:3003"
 )
 
 var (
