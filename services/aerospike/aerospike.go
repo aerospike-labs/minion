@@ -60,7 +60,7 @@ var (
 		"migrate_incoming_accepted": get("migrate_num_incoming_accepted"),
 		"migrate_incoming_refused":  get("migrate_num_incoming_refused"),
 
-		"read":              get("stat_read_req"),
+		"read":              get("stat_read_reqs"),
 		"read_ok":           get("stat_read_success"),
 		"read_err":          sum(get("stat_read_errs_notfound"), get("stat_read_errs_other")),
 		"read_err_notfound": get("stat_read_errs_notfound"),
