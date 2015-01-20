@@ -188,6 +188,19 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 		return err
 	}
 
+	logpath := filepath.Join("aerospike-server", "var", "log")
+	err = os.MkdirAll(logpath, 755)
+	if err != nil {
+		return err
+	}
+
+	runpath := filepath.Join("aerospike-server", "var", "run")
+	os.MkdirAll(runpath, 755)
+	err = os.MkdirAll(runpath, 755)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -350,12 +363,12 @@ func (svc *AerospikeService) run(commandName string) (string, string, error) {
 	cmd.Stderr = &stderr
 
 	err = cmd.Run()
-	if err != nil {
-		return "", "", err
-	}
-
 	outs := stdout.String()
 	errs := stderr.String()
+
+	if err != nil {
+		fmt.Println("err: ", err.Error())
+	}
 
 	if len(errs) > 0 {
 		fmt.Println("err: ", errs)
