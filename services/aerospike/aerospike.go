@@ -245,7 +245,7 @@ func (svc *AerospikeService) Start() error {
 		return err
 	}
 
-	err = ioutil.WriteFile(dst_path, os.ExpandEnv(src_data), 0755)
+	err = ioutil.WriteFile(dst_path, []byte(os.ExpandEnv(string(src_data))), 0755)
 	if err != nil {
 		return err
 	}
