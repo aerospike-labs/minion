@@ -34,7 +34,31 @@ var (
 
 	svcPath string = os.Getenv("SERVICE_PATH")
 
-	statsMapper = map[string]func(m map[string]int) int{
+	statsMapper = map[string]func(n string, m map[string]int) int{
+
+		"memory-total":       get("total-bytes-memory"),
+		"memory-used":        get("used-bytes-memory"),
+		"memory-used-data":   get("data-used-bytes-memory"),
+		"memory-used-index":  get("index-used-bytes-memory"),
+		"memory-used-sindex": get("sindex-used-bytes-memory"),
+
+		"objects":         id(),
+		"objects_expired": get("stat_expired_objects"),
+		"objects_evicted": get("stat_evicted_objects"),
+
+		"transactions":         get("stats_read_req"),
+		"transactions_waiting": get("waiting_transactions"),
+
+		"proxy":      get("stat_proxy_reqs"),
+		"proxy_ok":   get("stat_proxy_success"),
+		"proxy_errs": get("stat_proxy_errs"),
+
+		"migrate_msgs_sent":             id(),
+		"migrate_msgs_recv":             id(),
+		"migrate_progress_send":         id(),
+		"migrate_progress_recv":         id(),
+		"migrate_num_incoming_accepted": id(),
+		"migrate_num_incoming_refused":  id(),
 
 		"read":              get("stats_read_req"),
 		"read_ok":           get("stat_read_success"),
@@ -290,18 +314,24 @@ func ScanPairs(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	return start, nil, nil
 }
 
+func id() func(map[string]int) int {
+	return func(n string, m map[string]int) int {
+		return m[n]
+	}
+}
+
 func get(k string) func(map[string]int) int {
-	return func(m map[string]int) int {
+	return func(n string, m map[string]int) int {
 		return m[k]
 	}
 }
 
 func sum(vals ...func(m map[string]int) int) func(map[string]int) int {
 
-	return func(m map[string]int) int {
+	return func(n string, m map[string]int) int {
 		i := 0
 		for _, val := range vals {
-			i += val(m)
+			i += val(n, m)
 		}
 		return i
 	}
@@ -339,7 +369,7 @@ func (svc *AerospikeService) Stats() (map[string]interface{}, error) {
 		if fn == nil {
 			stats[k] = rawStats[k]
 		} else {
-			stats[k] = fn(rawStats)
+			stats[k] = fn(k, rawStats)
 		}
 	}
 
