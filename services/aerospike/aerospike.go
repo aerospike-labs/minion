@@ -212,12 +212,12 @@ func (svc *AerospikeService) Remove() error {
 }
 
 func (svc *AerospikeService) Status() (Status, error) {
-	out, err := svc.run("status")
+	stdout, _, err := svc.run("status")
 	if err != nil {
 		return StatusUnknown, err
 	}
 
-	if strings.Contains(out, "running") {
+	if strings.Contains(stdout, "running") {
 		return Running, nil
 	} else {
 		return Stopped, nil
@@ -250,12 +250,12 @@ func (svc *AerospikeService) Start() error {
 		return err
 	}
 
-	_, err = svc.run("start")
+	_, _, err = svc.run("start")
 	return err
 }
 
 func (svc *AerospikeService) Stop() error {
-	_, err := svc.run("stop")
+	_, _, err := svc.run("stop")
 	return err
 }
 
@@ -334,20 +334,37 @@ func (svc *AerospikeService) Stats() (map[string]interface{}, error) {
 }
 
 // Run a Service Command
-func (svc *AerospikeService) run(commandName string) (string, error) {
-	var err error = nil
+func (svc *AerospikeService) run(commandName string) (string, string, error) {
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	var cmd *exec.Cmd
+	var err error
 
 	aerospikePath := filepath.Join(svcPath, "aerospike-server")
 	aerospikeCommand := filepath.Join(aerospikePath, "bin", "aerospike")
 
-	cmd := exec.Command(aerospikeCommand, commandName)
+	cmd = exec.Command(aerospikeCommand, commandName)
 	cmd.Dir = aerospikePath
-	out, err := cmd.CombinedOutput()
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err = cmd.Run()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return string(out), err
+	outs := stdout.String()
+	errs := stderr.String()
+
+	if len(errs) > 0 {
+		fmt.Println("err: ", errs)
+	}
+	if len(outs) > 0 {
+		fmt.Println("out: ", outs)
+	}
+
+	return outs, errs, err
 }
 
 // Main - should call service.Run, to run the service,
