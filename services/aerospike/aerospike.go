@@ -46,7 +46,7 @@ var (
 		"objects_expired": get("stat_expired_objects"),
 		"objects_evicted": get("stat_evicted_objects"),
 
-		"transactions":         get("stats_read_req"),
+		"transactions":         get("transactions"),
 		"transactions_waiting": get("waiting_transactions"),
 
 		"proxy":      get("stat_proxy_reqs"),
