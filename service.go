@@ -233,7 +233,7 @@ func (self *ServiceContext) Stop(req *http.Request, serviceId *string, res *stri
 }
 
 // Stats of the Service
-func (self *ServiceContext) Stats(req *http.Request, serviceId *string, res *map[string]int) error {
+func (self *ServiceContext) Stats(req *http.Request, serviceId *string, res *map[string]interface{}) error {
 	var out string = ""
 
 	if _, exists := self.Registry[*serviceId]; !exists {
