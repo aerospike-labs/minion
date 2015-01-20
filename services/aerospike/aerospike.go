@@ -231,6 +231,8 @@ func (svc *AerospikeService) Start() error {
 
 	var err error
 
+	os.Setenv("AEROSPIKE_HOME", filepath.Join(svcPath, "aerospike-server"))
+
 	src_path := os.ExpandEnv(filepath.Join("$CONFIG_PATH", "aerospike.conf"))
 	dst_path := filepath.Join("aerospike-server", "etc", "aerospike.conf")
 
