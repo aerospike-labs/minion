@@ -36,11 +36,11 @@ var (
 
 	statsMapper = map[string]func(n string, m map[string]int) int{
 
-		"memory-total":       get("total-bytes-memory"),
-		"memory-used":        get("used-bytes-memory"),
-		"memory-used-data":   get("data-used-bytes-memory"),
-		"memory-used-index":  get("index-used-bytes-memory"),
-		"memory-used-sindex": get("sindex-used-bytes-memory"),
+		"memory_total":       get("total-bytes-memory"),
+		"memory_used":        get("used-bytes-memory"),
+		"memory_used_data":   get("data-used-bytes-memory"),
+		"memory_used_index":  get("index-used-bytes-memory"),
+		"memory_used_sindex": get("sindex-used-bytes-memory"),
 
 		"objects":         id(),
 		"objects_expired": get("stat_expired_objects"),
