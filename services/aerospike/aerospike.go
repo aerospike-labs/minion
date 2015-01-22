@@ -47,6 +47,11 @@ var (
 		"memory_used_index":  get("index-used-bytes-memory"),
 		"memory_used_sindex": get("sindex-used-bytes-memory"),
 
+		"disk_total": get("total-bytes-disk"),
+		"disk_used":  get("used-bytes-disk"),
+
+		"cluster_size": id(),
+
 		"objects":         id(),
 		"objects_expired": get("stat_expired_objects"),
 		"objects_evicted": get("stat_evicted_objects"),
