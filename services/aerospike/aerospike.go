@@ -485,6 +485,8 @@ func (svc *AerospikeService) run(commandName string) (string, string, error) {
 	aerospikeCommand := filepath.Join(aerospikePath, "bin", "aerospike")
 
 	cmd = exec.Command(aerospikeCommand, commandName)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "TERM=dumb")
 	cmd.Dir = aerospikePath
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
