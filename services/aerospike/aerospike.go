@@ -493,7 +493,9 @@ func histogramObjectSize(conn net.Conn, stats map[string]interface{}) error {
 		case iValuesEnd == 0 && r == ';':
 			iValuesEnd = i
 			sValues := string(out[iHeadersEnd+1 : iValuesEnd])
+			println("sValues: ", sValues)
 			aValues := strings.Split(sValues, ",")
+			println("aValues: ", aValues)
 			values := []int{}
 			for _, v := range aValues {
 				value, err := strconv.Atoi(v)
