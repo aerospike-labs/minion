@@ -494,11 +494,13 @@ func histogramObjectSize(conn net.Conn, stats map[string]interface{}) error {
 			iValuesEnd = i
 			sValues := string(out[iHeadersEnd+1 : iValuesEnd])
 			aValues := strings.Split(sValues, ",")
-			values := make([]int, len(aValues))
-			for i, v := range aValues {
-				values[i], err = strconv.Atoi(v)
+			values := []int{}
+			for _, v := range aValues {
+				value, err := strconv.Atoi(v)
 				if err != nil {
-					values[i] = 0
+					values = append(values, 0)
+				} else {
+					values = append(values, value)
 				}
 			}
 			stats["objects_sizes"] = values
