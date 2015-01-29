@@ -381,7 +381,7 @@ func statistics(conn net.Conn, stats map[string]interface{}) error {
 	return err
 }
 
-func processHistogram(out []byte, iStart, iNameEnd, iHeadersEnd, iValuesEnd int, stats map[string]interface{}) error {
+func processHistogramLatency(out []byte, iStart, iNameEnd, iHeadersEnd, iValuesEnd int, stats map[string]interface{}) error {
 
 	name := string(out[iStart:iNameEnd])
 
@@ -412,7 +412,7 @@ func processHistogram(out []byte, iStart, iNameEnd, iHeadersEnd, iValuesEnd int,
 	return nil
 }
 
-func latency(conn net.Conn, stats map[string]interface{}) error {
+func histogramLatency(conn net.Conn, stats map[string]interface{}) error {
 
 	var err error
 	var out []byte
@@ -448,11 +448,54 @@ func latency(conn net.Conn, stats map[string]interface{}) error {
 			iHeadersEnd = i
 		case iValuesEnd == 0 && r == ';':
 			iValuesEnd = i
-			processHistogram(out, iStart, iNameEnd, iHeadersEnd, iValuesEnd, stats)
+			processHistogramLatency(out, iStart, iNameEnd, iHeadersEnd, iValuesEnd, stats)
 			iStart = i + 1
 			iNameEnd = 0
 			iHeadersEnd = 0
 			iValuesEnd = 0
+		}
+	}
+
+	return err
+}
+
+func histogramObjectSize(conn net.Conn, stats map[string]interface{}) error {
+
+	var err error
+	var out []byte
+
+	fmt.Fprintf(conn, "hist-dump:ns=test;hist=objsz\n")
+
+	out, err = bufio.NewReader(conn).ReadBytes('\n')
+	if err != nil {
+		return err
+	}
+
+	//
+	// OUTPUT:
+	//
+	// test:objsz=100,1,1000000,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	// 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	// 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	// 0,0,0,0;
+	//
+
+	iNameEnd := 0
+	iHeadersEnd := 0
+	iValuesEnd := 0
+
+	for i, r := range out {
+		switch {
+		case iNameEnd == 0 && r == ':':
+			iNameEnd = i
+		case iHeadersEnd == 0 && r == '=':
+			iHeadersEnd = i
+		case iValuesEnd == 0 && r == ';':
+			iValuesEnd = i
+			sValues := string(out[iHeadersEnd+1 : iValuesEnd])
+			aValues := strings.Split(sValues, ",")
+			stats["objects_sizes"] = aValues
+			break
 		}
 	}
 
@@ -473,7 +516,10 @@ func (svc *AerospikeService) Stats() (map[string]interface{}, error) {
 	statistics(conn, stats)
 
 	// Process 'latency:'
-	latency(conn, stats)
+	histogramLatency(conn, stats)
+
+	// Process object size histogram
+	histogramObjectSize(conn, stats)
 
 	return stats, nil
 }
