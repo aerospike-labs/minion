@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 // ----------------------------------------------------------------------------
@@ -66,6 +67,8 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 
 	var err error = nil
 
+	log.Printf("info: installing id=%s url=%s params=%#v\n", svc.Id, svc.URL, svc.Params)
+
 	if _, exists := self.Registry[svc.Id]; exists {
 		log.Println("error: ", "Service found:", svc.Id)
 		return service.Exists
@@ -80,6 +83,7 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 
 	// download the service
 	get := exec.Command("go", "get", "-u", svc.URL)
+	log.Printf("info: executing: %s %s\n", get.Path, strings.Join(get.Args, " "))
 	get.Env = env
 	get.Dir = svcPath
 	getOut, err := get.CombinedOutput()
@@ -94,6 +98,7 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 
 	// binPath := filepath.Join("service")
 	build := exec.Command("go", "build", "-o", "service", svc.URL)
+	log.Printf("info: executing: %s %s\n", build.Path, strings.Join(build.Args, " "))
 	build.Env = env
 	build.Dir = svcPath
 	buildOut, err := build.CombinedOutput()
@@ -108,8 +113,10 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 
 	// write the url file
 	jsonFile := filepath.Join(svcPath, "service.json")
+	log.Printf("info: loading service.json: %s\n", jsonFile)
 	jsonData, err := json.Marshal(svc)
 	if err != nil {
+		log.Printf("error: loading service.json: %s\n", err.Error())
 		return err
 	}
 	ioutil.WriteFile(jsonFile, jsonData, 0755)
@@ -125,7 +132,9 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	ioutil.WriteFile(envFile, envData.Bytes(), 0755)
 
 	// run "install" command
+	log.Println("info: installing")
 	if err = self.run(svc.Id, "install", svc.Params, res); err != nil {
+		log.Println("error: installing: ", err.Error())
 		return err
 	}
 
@@ -263,6 +272,7 @@ func (self *ServiceContext) run(serviceId string, commandName string, params map
 	svcPath := filepath.Join(rootPath, "svc", serviceId)
 	binPath := filepath.Join(svcPath, "service")
 	cmd := exec.Command(binPath, commandName)
+	log.Printf("info: executing: %s %s\n", cmd.Path, strings.Join(cmd.Args, " "))
 	cmd.Dir = svcPath
 	cmd.Env = self.getenv(serviceId, serviceUrl)
 
@@ -273,10 +283,11 @@ func (self *ServiceContext) run(serviceId string, commandName string, params map
 	} else {
 		cmd.Stdin = bytes.NewReader(b)
 	}
+	log.Printf("info: executing: < %s\n", b)
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Println("error: ", err.Error())
+		log.Printf("error: executing: %s %s\n", cmd.Path, err.Error())
 		return err
 	}
 
