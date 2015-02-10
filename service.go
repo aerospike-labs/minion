@@ -283,7 +283,7 @@ func (self *ServiceContext) run(serviceId string, commandName string, params map
 	} else {
 		cmd.Stdin = bytes.NewReader(b)
 	}
-	log.Printf("info: executing: < %s\n", b)
+	// log.Printf("info: executing: < %s\n", b)
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
