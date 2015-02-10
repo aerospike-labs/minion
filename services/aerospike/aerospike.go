@@ -602,5 +602,8 @@ func main() {
 	flag.StringVar(&host, "host", host, "Aerospike address and port.")
 	flag.Parse()
 
+	// setup logger
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+
 	Run(&AerospikeService{})
 }
