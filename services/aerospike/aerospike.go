@@ -367,7 +367,7 @@ func statistics(conn net.Conn, stats map[string]interface{}) error {
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Printf("error: Invalid input: %s", err)
+		log.Printf("error: Invalid input: %s", err)
 	}
 
 	for k, fn := range statsMapper {
@@ -558,14 +558,14 @@ func (svc *AerospikeService) run(commandName string) (string, string, error) {
 	errs := stderr.String()
 
 	if err != nil {
-		fmt.Println("err: ", err.Error())
+		log.Println("err: ", err.Error())
 	}
 
 	if len(errs) > 0 {
-		fmt.Println("err: ", errs)
+		log.Println("err: ", errs)
 	}
 	if len(outs) > 0 {
-		fmt.Println("out: ", outs)
+		log.Println("out: ", outs)
 	}
 
 	return outs, errs, err

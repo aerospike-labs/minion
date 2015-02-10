@@ -6,6 +6,7 @@ import (
 	"flag"
 	// "fmt"
 	"io/ioutil"
+	"log"
 	"os"
 )
 
@@ -42,6 +43,9 @@ func Run(s Service) {
 
 	flag.Parse()
 	args := flag.Args()
+
+	// setup logger
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
 	if len(args) == 0 {
 		println("error: missing command")
