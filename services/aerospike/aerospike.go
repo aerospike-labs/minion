@@ -145,10 +145,12 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 	} else {
 		shaRaw, err := ioutil.ReadAll(shaResp.Body)
 		if err != nil {
+			log.Printf("error: %s\n", err.Error())
 			return err
 		}
 		sha, err = hex.DecodeString(string(shaRaw[:64]))
 		if err != nil {
+			log.Printf("error: %s\n", err.Error())
 			return err
 		}
 	}
@@ -310,6 +312,9 @@ func (svc *AerospikeService) Start() error {
 	}
 
 	_, _, err = svc.run("start")
+	if err != nil {
+		log.Printf("error: %s\n", err.Error())
+	}
 	return err
 }
 
@@ -375,6 +380,7 @@ func statistics(conn net.Conn, stats map[string]interface{}) error {
 
 	out, err = bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
+		log.Printf("error: %s\n", err.Error())
 		return err
 	}
 
