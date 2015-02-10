@@ -70,7 +70,7 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	log.Printf("info: installing id=%s url=%s params=%#v\n", svc.Id, svc.URL, svc.Params)
 
 	if _, exists := self.Registry[svc.Id]; exists {
-		log.Println("error: ", "Service found:", svc.Id)
+		log.Printf("error: Service found: %s", svc.Id)
 		return service.Exists
 	}
 
@@ -88,11 +88,11 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	get.Dir = svcPath
 	getOut, err := get.CombinedOutput()
 	if err != nil {
-		log.Println("error: ", err.Error())
+		log.Printf("error: %s\n", err.Error())
 		return err
 	} else {
 		if len(getOut) > 0 {
-			log.Println("out: ", string(getOut))
+			log.Printf("info: out: %x\n", string(getOut))
 		}
 	}
 
@@ -103,11 +103,11 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	build.Dir = svcPath
 	buildOut, err := build.CombinedOutput()
 	if err != nil {
-		log.Println("error: ", err.Error())
+		log.Printf("error: %s\n", err.Error())
 		return err
 	} else {
 		if len(buildOut) > 0 {
-			log.Println("out: ", string(buildOut))
+			log.Printf("info: out: %x\n", buildOut)
 		}
 	}
 
@@ -132,9 +132,9 @@ func (self *ServiceContext) Install(req *http.Request, svc *ServiceInstall, res 
 	ioutil.WriteFile(envFile, envData.Bytes(), 0755)
 
 	// run "install" command
-	log.Println("info: installing")
+	log.Printf("info: installing\n")
 	if err = self.run(svc.Id, "install", svc.Params, res); err != nil {
-		log.Println("error: installing: ", err.Error())
+		log.Printf("error: installing: %s\n", err.Error())
 		return err
 	}
 
@@ -151,7 +151,7 @@ func (self *ServiceContext) Remove(req *http.Request, serviceId *string, res *st
 
 	svc, exists := self.Registry[*serviceId]
 	if !exists {
-		log.Println("error: ", "Service not found:", serviceId)
+		log.Printf("error: Service not found: %s\n", serviceId)
 		return service.NotFound
 	}
 
@@ -171,18 +171,18 @@ func (self *ServiceContext) Remove(req *http.Request, serviceId *string, res *st
 	cmd.Dir = svcPath
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Println("error: ", err.Error())
+		log.Printf("error: %s\n", err.Error())
 		return err
 	} else {
 		if len(out) > 0 {
-			log.Println("out: ", string(out))
+			log.Printf("info: out: %x\n", out)
 		}
 	}
 
 	srcPath := filepath.Join(rootPath, "src", svc.URL)
 	if err = os.RemoveAll(srcPath); err != nil {
 		if !os.IsNotExist(err) {
-			log.Println("error: ", err.Error())
+			log.Printf("error: %s\n", err.Error())
 			return err
 		}
 	}
@@ -190,14 +190,14 @@ func (self *ServiceContext) Remove(req *http.Request, serviceId *string, res *st
 	binPath := filepath.Join(rootPath, "bin", svc.Id)
 	if err = os.RemoveAll(binPath); err != nil {
 		if !os.IsNotExist(err) {
-			log.Println("error: ", err.Error())
+			log.Printf("error: %s\n", err.Error())
 			return err
 		}
 	}
 
 	if err = os.RemoveAll(svcPath); err != nil {
 		if !os.IsNotExist(err) {
-			log.Println("error: ", err.Error())
+			log.Printf("error: %s\n", err.Error())
 			return err
 		}
 	}
@@ -278,7 +278,7 @@ func (self *ServiceContext) run(serviceId string, commandName string, params map
 
 	b, err := json.Marshal(params)
 	if err != nil {
-		log.Println("error: ", err.Error())
+		log.Printf("error: %s", err.Error())
 		return err
 	} else {
 		cmd.Stdin = bytes.NewReader(b)
@@ -289,11 +289,11 @@ func (self *ServiceContext) run(serviceId string, commandName string, params map
 	if err != nil {
 		log.Printf("error: executing: %s\n", err.Error())
 		if out != nil && len(out) > 0 {
-			log.Printf("error: out: %s\n", string(out))
+			log.Printf("error: out: %x\n", out)
 		}
 	} else {
 		*res = string(out)
-		log.Printf("info: out: %s\n", *res)
+		log.Printf("info: out: %x\n", out)
 	}
 
 	return err

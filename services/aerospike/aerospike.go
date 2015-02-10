@@ -583,14 +583,14 @@ func (svc *AerospikeService) run(commandName string) (string, string, error) {
 	errs := stderr.String()
 
 	if err != nil {
-		log.Println("err: ", err.Error())
+		log.Printf("error: %s\n", err.Error())
 	}
 
 	if len(errs) > 0 {
-		log.Println("err: ", errs)
+		log.Printf("error: out: %s\n", errs)
 	}
 	if len(outs) > 0 {
-		log.Println("out: ", outs)
+		log.Printf("info: out: %s\n", outs)
 	}
 
 	return outs, errs, err
