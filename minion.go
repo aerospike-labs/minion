@@ -128,6 +128,9 @@ func main() {
 	os.Setenv("GOPATH", filepath.Join(rootPath, "go"))
 	os.Setenv("PATH", os.Getenv("PATH")+":"+filepath.Join(rootPath, "go", "bin"))
 
+	// setup logger
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+
 	// check files
 	pidFile = checkFile(pidFile)
 	logFile = checkFile(logFile)
