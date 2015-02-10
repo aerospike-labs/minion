@@ -287,10 +287,14 @@ func (self *ServiceContext) run(serviceId string, commandName string, params map
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Printf("error: executing: %s %s\n", cmd.Path, err.Error())
-		return err
+		log.Printf("error: executing: %s\n", err.Error())
+		if out != nil && len(out) > 0 {
+			log.Printf("error: out: %s\n", string(out))
+		}
+	} else {
+		*res = string(out)
+		log.Printf("info: result: %s\n", *res)
 	}
 
-	*res = string(out)
 	return err
 }
