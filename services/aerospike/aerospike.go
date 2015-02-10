@@ -120,6 +120,7 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 	// the following should come from `params`
 	version, ok := params["version"]
 	if !ok {
+		log.Printf("error: %s", ErrorMissingVersion.Error())
 		return ErrorMissingVersion
 	}
 
@@ -128,6 +129,7 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 	tgzResp, err := http.Get(tgzUrl)
 	defer tgzResp.Body.Close()
 	if err != nil {
+		log.Printf("error: %s", err.Error())
 		return err
 	} else {
 		tgz, err = ioutil.ReadAll(tgzResp.Body)
@@ -138,6 +140,7 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 	shaResp, err := http.Get(shaUrl)
 	defer shaResp.Body.Close()
 	if err != nil {
+		log.Printf("error: %s", err.Error())
 		return err
 	} else {
 		shaRaw, err := ioutil.ReadAll(shaResp.Body)
@@ -155,6 +158,7 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 
 	// are checksums equal?
 	if !bytes.Equal(sha[:], sum[:]) {
+		log.Printf("error: %s", ErrorInvalidChecksum.Error())
 		return ErrorInvalidChecksum
 	}
 
@@ -164,6 +168,7 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 
 	gzipReader, err := gzip.NewReader(tgzReader)
 	if err != nil {
+		log.Printf("error: %s", err.Error())
 		return err
 	}
 
@@ -173,9 +178,11 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 	for {
 		hdr, err := tarReader.Next()
 		if err == io.EOF {
+			log.Printf("error: %s", err.Error())
 			break
 		}
 		if err != nil {
+			log.Printf("error: %s", err.Error())
 			return err
 		}
 		dstPath := filepath.Join(svcPath, hdr.Name)
@@ -187,15 +194,18 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 
 			dst, err := os.Create(dstPath)
 			if err != nil {
+				log.Printf("error: %s", err.Error())
 				return err
 			}
 
 			if _, err := io.Copy(dst, tarReader); err != nil {
+				log.Printf("error: %s", err.Error())
 				return err
 			}
 			dst.Close()
 
 			if err = os.Chmod(dstPath, 0755); err != nil {
+				log.Printf("error: %s", err.Error())
 				return err
 			}
 
@@ -213,12 +223,14 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 	cmd.Dir = filepath.Join(svcPath, "aerospike-server")
 	_, err = cmd.CombinedOutput()
 	if err != nil {
+		log.Printf("error: %s", err.Error())
 		return err
 	}
 
 	logpath := filepath.Join("aerospike-server", "var", "log")
 	err = os.MkdirAll(logpath, 755)
 	if err != nil {
+		log.Printf("error: %s", err.Error())
 		return err
 	}
 
@@ -226,6 +238,7 @@ func (svc *AerospikeService) Install(params map[string]interface{}) error {
 	os.MkdirAll(runpath, 755)
 	err = os.MkdirAll(runpath, 755)
 	if err != nil {
+		log.Printf("error: %s", err.Error())
 		return err
 	}
 
@@ -244,6 +257,7 @@ func (svc *AerospikeService) Remove() error {
 	cmd.Dir = filepath.Join(svcPath, "aerospike-server")
 	_, err = cmd.CombinedOutput()
 	if err != nil {
+		log.Printf("error: %s", err.Error())
 		return err
 	}
 
@@ -255,6 +269,7 @@ func (svc *AerospikeService) Remove() error {
 func (svc *AerospikeService) Status() (Status, error) {
 	stdout, _, err := svc.run("status")
 	if err != nil {
+		log.Printf("error: %s", err.Error())
 		return StatusUnknown, err
 	}
 
@@ -278,16 +293,19 @@ func (svc *AerospikeService) Start() error {
 	dst_path := filepath.Join("aerospike-server", "etc", "aerospike.conf")
 
 	if _, err := os.Stat(src_path); err != nil {
+		log.Printf("error: %s", err.Error())
 		return err
 	}
 
 	src_data, err := ioutil.ReadFile(src_path)
 	if err != nil {
+		log.Printf("error: %s", err.Error())
 		return err
 	}
 
 	err = ioutil.WriteFile(dst_path, []byte(os.ExpandEnv(string(src_data))), 0755)
 	if err != nil {
+		log.Printf("error: %s", err.Error())
 		return err
 	}
 
@@ -297,6 +315,9 @@ func (svc *AerospikeService) Start() error {
 
 func (svc *AerospikeService) Stop() error {
 	_, _, err := svc.run("stop")
+	if err != nil {
+		log.Printf("error: %s", err.Error())
+	}
 	return err
 }
 
@@ -422,6 +443,7 @@ func histogramLatency(conn net.Conn, stats map[string]interface{}) error {
 
 	out, err = bufio.NewReader(conn).ReadBytes('\n')
 	if err != nil {
+		log.Printf("error: %s", err.Error())
 		return err
 	}
 
@@ -469,6 +491,7 @@ func histogramObjectSize(conn net.Conn, stats map[string]interface{}) error {
 
 	out, err = bufio.NewReader(conn).ReadBytes('\n')
 	if err != nil {
+		log.Printf("error: %s", err.Error())
 		return err
 	}
 
@@ -521,6 +544,7 @@ func (svc *AerospikeService) Stats() (map[string]interface{}, error) {
 
 	conn, err := net.Dial("tcp", host)
 	if err != nil {
+		log.Printf("error: %s", err.Error())
 		return stats, err
 	}
 
