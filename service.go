@@ -290,6 +290,7 @@ func (self *ServiceContext) run(serviceId string, commandName string, params map
 		log.Printf("error: executing: %s\n", err.Error())
 		if out != nil && len(out) > 0 {
 			log.Printf("error: out: %x\n", out)
+			log.Printf("error: out: %U\n", out)
 		}
 	} else {
 		*res = string(out)
